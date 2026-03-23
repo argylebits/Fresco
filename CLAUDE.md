@@ -57,8 +57,8 @@
 
 ## Key docs
 
-- Product docs: `docs/`
-- Agent workspace: `AGENTS/`
-- Implementation brief: `AGENTS/AGENT_HANDOFF.md`
-- Architecture: `docs/ARCHITECTURE.md`
-- Internal toolchain: `AGENTS/TOOLCHAIN.md`
+- Product docs: `FrescoDocs/docs/`
+- Agent workspace: `FrescoDocs/AGENTS/`
+- Implementation brief: `FrescoDocs/AGENTS/AGENT_HANDOFF.md`
+- Architecture: `FrescoDocs/docs/ARCHITECTURE.md`
+- Internal toolchain: `FrescoDocs/AGENTS/TOOLCHAIN.md`
