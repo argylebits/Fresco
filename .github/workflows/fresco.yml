@@ -45,7 +45,7 @@ jobs:
             echo "No gallery changes to commit."
             exit 0
           fi
-          BRANCH="fresco/gallery-$(date +%Y-%m-%d)"
+          BRANCH="fresco/gallery-$(date +%Y-%m-%d)-${{ github.run_id }}"
           git checkout -b "$BRANCH"
           git commit -m "fresco: $(date +%Y-%m-%d)"
           git push origin "$BRANCH"

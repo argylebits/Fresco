@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test-macos:
-    runs-on: macos-latest
+  macos:
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
@@ -27,13 +27,12 @@ jobs:
         run: swift test
         working-directory: FrescoCLI
 
-  test-linux:
+  linux:
     runs-on: ubuntu-latest
+    container:
+      image: swift:6.2
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Swift
-        uses: swift-actions/setup-swift@v2
 
       - name: Build FrescoCore
         run: swift build
