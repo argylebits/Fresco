@@ -43,12 +43,13 @@ jobs:
             echo "No gallery changes to commit."
             exit 0
           fi
-          BRANCH="fresco/gallery-$(date +%Y-%m-%d)-${{ github.run_id }}"
+          DATE="$(date +%Y-%m-%d)"
+          BRANCH="fresco/gallery-${DATE}-${{ github.run_id }}"
           git checkout -b "$BRANCH"
-          git commit -m "fresco: $(date +%Y-%m-%d)"
+          git commit -m "fresco: ${DATE}"
           git push origin "$BRANCH"
           gh pr create \
-            --title "fresco: $(date +%Y-%m-%d)" \
+            --title "fresco: ${DATE}" \
             --body "Automated gallery update from Fresco image generation." \
             --base main \
             --head "$BRANCH"
