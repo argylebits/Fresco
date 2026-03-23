@@ -2,8 +2,8 @@ name: Fresco Image Generation
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # runs daily — fresco generate checks the configured schedule
-  workflow_dispatch:        # manual trigger from GitHub UI (bypasses schedule check)
+    - cron: '0 3 * * *'   # default — fresco init generates the correct cron expression
+  workflow_dispatch:        # manual trigger from GitHub UI
 
 permissions:
   contents: write
@@ -27,8 +27,6 @@ jobs:
           FRESCO_PROMPT:          ${{ secrets.FRESCO_PROMPT }}
           FRESCO_SLUG:            ${{ secrets.FRESCO_SLUG }}
           FRESCO_NAME:            ${{ secrets.FRESCO_NAME }}
-          FRESCO_SCHEDULE:        ${{ secrets.FRESCO_SCHEDULE }}
-          FRESCO_SCHEDULE_HOUR:   ${{ secrets.FRESCO_SCHEDULE_HOUR }}
           GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
           R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID:      ${{ secrets.R2_ACCESS_KEY_ID }}
