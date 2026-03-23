@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build FrescoCore
+        run: swift build
+        working-directory: FrescoCore
+
+      - name: Test FrescoCore
+        run: swift test
+        working-directory: FrescoCore
+
+      - name: Build FrescoCLI
+        run: swift build
+        working-directory: FrescoCLI
+
+      - name: Test FrescoCLI
+        run: swift test
+        working-directory: FrescoCLI
+
+  linux:
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build FrescoCore
+        run: swift build
+        working-directory: FrescoCore
+
+      - name: Test FrescoCore
+        run: swift test
+        working-directory: FrescoCore
+
+      - name: Build FrescoCLI
+        run: swift build
+        working-directory: FrescoCLI
+
+      - name: Test FrescoCLI
+        run: swift test
+        working-directory: FrescoCLI
