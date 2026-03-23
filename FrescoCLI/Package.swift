@@ -4,11 +4,11 @@ import PackageDescription
 let package = Package(
     name: "FrescoCLI",
     platforms: [
-        .macOS(.v15),
+        .macOS(.v26),
     ],
     dependencies: [
         .package(path: "../FrescoCore"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
     ],
     targets: [
         .executableTarget(
