@@ -1,0 +1,12 @@
+.DS_Store
+.build/
+.swiftpm/
+
+# Credentials — never commit
+.env
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
