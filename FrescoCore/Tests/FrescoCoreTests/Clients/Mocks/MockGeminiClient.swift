@@ -1,4 +1,5 @@
 import Foundation
+@testable import FrescoCore
 
 final class MockGeminiClient: GeminiClientProtocol, Sendable {
     enum Behaviour: Sendable {
