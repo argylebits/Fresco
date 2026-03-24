@@ -50,8 +50,6 @@ struct GenerationResultTests {
         let gemini = FrescoError.geminiError("fail")
         let r2 = FrescoError.r2UploadError("fail")
         let config = FrescoError.configurationError("fail")
-        let server = FrescoError.serverModeNotImplemented
-
         if case .geminiError = gemini {} else {
             Issue.record("Expected geminiError")
         }
@@ -60,9 +58,6 @@ struct GenerationResultTests {
         }
         if case .configurationError = config {} else {
             Issue.record("Expected configurationError")
-        }
-        if case .serverModeNotImplemented = server {} else {
-            Issue.record("Expected serverModeNotImplemented")
         }
     }
 }
