@@ -56,17 +56,20 @@ public struct R2Client: R2ClientProtocol, Sendable {
         date: Date
     ) throws(FrescoError) -> URLRequest {
         let host = "\(accountId).r2.cloudflarestorage.com"
-        let path = "/\(bucket)/\(key)"
 
-        guard let url = URL(string: "https://\(host)\(path)") else {
+        guard let baseURL = URL(string: "https://\(host)") else {
             throw .r2UploadError("Invalid R2 endpoint URL")
         }
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.timeZone = TimeZone(identifier: "UTC")
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
-        let amzDate = dateFormatter.string(from: date)
+        let url = baseURL.appendingPathComponent(bucket).appendingPathComponent(key)
+        let path = url.path
+
+        let amzDate = date.formatted(
+            .iso8601.year().month().day()
+                .time(includingFractionalSeconds: false)
+                .timeSeparator(.omitted).dateSeparator(.omitted)
+                .timeZone(separator: .omitted)
+        )
         let dateStamp = String(amzDate.prefix(8))
 
         let payloadHash = sha256Hex(data)
