@@ -7,151 +7,112 @@ import FoundationNetworking
 
 @testable import FrescoCore
 
-private func makeSession() -> URLSession {
-    let config = URLSessionConfiguration.ephemeral
-    config.protocolClasses = [MockURLProtocol.self]
-    return URLSession(configuration: config)
-}
+private let fixedDate: Date = {
+    var components = DateComponents()
+    components.year = 2026
+    components.month = 3
+    components.day = 24
+    components.hour = 12
+    components.minute = 0
+    components.second = 0
+    components.timeZone = TimeZone(identifier: "UTC")
+    return Calendar(identifier: .gregorian).date(from: components)!
+}()
 
-private func makeClient(session: URLSession) -> R2Client {
+private func makeClient() -> R2Client {
     R2Client(
         accountId: "test-account",
         accessKeyId: "test-key-id",
         secretAccessKey: "test-secret",
-        bucket: "test-bucket",
-        session: session
+        bucket: "test-bucket"
     )
 }
 
-private func makeResponse(url: URL, statusCode: Int) -> HTTPURLResponse {
-    HTTPURLResponse(url: url, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
-}
-
-@Suite(.serialized)
 struct R2ClientTests {
-    @Test func upload_sendsCorrectURL() async throws {
-        MockURLProtocol.handler = { request in
-            #expect(request.url?.absoluteString == "https://test-account.r2.cloudflarestorage.com/test-bucket/images/test.jpg")
-            #expect(request.httpMethod == "PUT")
-            return (Data(), makeResponse(url: request.url!, statusCode: 200))
-        }
-
-        let client = makeClient(session: makeSession())
-        try await client.upload(
+    @Test func buildRequest_constructsCorrectURL() throws {
+        let client = makeClient()
+        let request = try client.buildRequest(
             data: Data([0x01]),
             key: "images/test.jpg",
             contentType: "image/jpeg",
-            cacheControl: "public, max-age=3600"
+            cacheControl: "public, max-age=3600",
+            date: fixedDate
         )
+
+        #expect(request.url?.absoluteString == "https://test-account.r2.cloudflarestorage.com/test-bucket/images/test.jpg")
+        #expect(request.httpMethod == "PUT")
     }
 
-    @Test func upload_setsContentHeaders() async throws {
-        MockURLProtocol.handler = { request in
-            #expect(request.value(forHTTPHeaderField: "Content-Type") == "image/jpeg")
-            #expect(request.value(forHTTPHeaderField: "Cache-Control") == "public, max-age=3600")
-            return (Data(), makeResponse(url: request.url!, statusCode: 200))
-        }
-
-        let client = makeClient(session: makeSession())
-        try await client.upload(
+    @Test func buildRequest_setsContentHeaders() throws {
+        let client = makeClient()
+        let request = try client.buildRequest(
             data: Data([0x01]),
             key: "images/test.jpg",
             contentType: "image/jpeg",
-            cacheControl: "public, max-age=3600"
+            cacheControl: "public, max-age=3600",
+            date: fixedDate
         )
+
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "image/jpeg")
+        #expect(request.value(forHTTPHeaderField: "Cache-Control") == "public, max-age=3600")
     }
 
-    @Test func upload_signsRequest() async throws {
-        MockURLProtocol.handler = { request in
-            let auth = request.value(forHTTPHeaderField: "Authorization")
-            #expect(auth != nil)
-            #expect(auth!.hasPrefix("AWS4-HMAC-SHA256"))
-            #expect(request.value(forHTTPHeaderField: "x-amz-date") != nil)
-            #expect(request.value(forHTTPHeaderField: "x-amz-content-sha256") != nil)
-            return (Data(), makeResponse(url: request.url!, statusCode: 200))
-        }
-
-        let client = makeClient(session: makeSession())
-        try await client.upload(
+    @Test func buildRequest_signsWithAWSV4() throws {
+        let client = makeClient()
+        let request = try client.buildRequest(
             data: Data([0x01]),
             key: "images/test.jpg",
             contentType: "image/jpeg",
-            cacheControl: "public, max-age=3600"
+            cacheControl: "public, max-age=3600",
+            date: fixedDate
         )
+
+        let auth = request.value(forHTTPHeaderField: "Authorization")
+        #expect(auth != nil)
+        #expect(auth!.hasPrefix("AWS4-HMAC-SHA256 Credential=test-key-id/20260324/auto/s3/aws4_request"))
+        #expect(request.value(forHTTPHeaderField: "x-amz-date") == "20260324T120000Z")
+        #expect(request.value(forHTTPHeaderField: "x-amz-content-sha256") != nil)
     }
 
-    @Test func upload_sendsBodyData() async throws {
-        let uploadData = Data([0x01, 0x02, 0x03])
+    @Test func buildRequest_signatureIsDeterministic() throws {
+        let client = makeClient()
+        let data = Data([0x01, 0x02, 0x03])
 
-        MockURLProtocol.handler = { request in
-            let bodyData: Data
-            if let httpBody = request.httpBody {
-                bodyData = httpBody
-            } else if let stream = request.httpBodyStream {
-                stream.open()
-                defer { stream.close() }
-                var data = Data()
-                let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1024)
-                defer { buffer.deallocate() }
-                while stream.hasBytesAvailable {
-                    let read = stream.read(buffer, maxLength: 1024)
-                    if read > 0 { data.append(buffer, count: read) }
-                    else { break }
-                }
-                bodyData = data
-            } else {
-                Issue.record("No body on request")
-                return (Data(), makeResponse(url: request.url!, statusCode: 200))
-            }
-            #expect(bodyData == uploadData)
-            return (Data(), makeResponse(url: request.url!, statusCode: 200))
-        }
-
-        let client = makeClient(session: makeSession())
-        try await client.upload(
-            data: uploadData,
-            key: "images/test.jpg",
-            contentType: "image/jpeg",
-            cacheControl: "public, max-age=3600"
+        let request1 = try client.buildRequest(
+            data: data, key: "test.jpg", contentType: "image/jpeg",
+            cacheControl: "public, max-age=3600", date: fixedDate
         )
+        let request2 = try client.buildRequest(
+            data: data, key: "test.jpg", contentType: "image/jpeg",
+            cacheControl: "public, max-age=3600", date: fixedDate
+        )
+
+        #expect(request1.value(forHTTPHeaderField: "Authorization") == request2.value(forHTTPHeaderField: "Authorization"))
     }
 
-    @Test func upload_httpError_throwsR2UploadError() async {
-        MockURLProtocol.handler = { request in
-            (Data("forbidden".utf8), makeResponse(url: request.url!, statusCode: 403))
-        }
+    @Test func handleResponse_successDoesNotThrow() throws {
+        let client = makeClient()
+        let url = URL(string: "https://example.com")!
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
 
-        let client = makeClient(session: makeSession())
+        try client.handleResponse(data: Data(), response: response)
+    }
+
+    @Test func handleResponse_httpError_throwsWithBody() throws {
+        let client = makeClient()
+        let url = URL(string: "https://example.com")!
+        let response = HTTPURLResponse(url: url, statusCode: 403, httpVersion: nil, headerFields: nil)!
+
         do {
-            try await client.upload(
-                data: Data([0x01]),
-                key: "images/test.jpg",
-                contentType: "image/jpeg",
-                cacheControl: "public, max-age=3600"
-            )
+            try client.handleResponse(data: Data("forbidden".utf8), response: response)
             Issue.record("Expected error")
         } catch {
             if case .r2UploadError(let message) = error {
+                #expect(message.contains("403"))
                 #expect(message.contains("forbidden"))
             } else {
                 Issue.record("Wrong error case: \(error)")
             }
-        }
-    }
-
-    @Test func upload_networkError_throwsR2UploadError() async {
-        MockURLProtocol.handler = { _ in
-            throw URLError(.notConnectedToInternet)
-        }
-
-        let client = makeClient(session: makeSession())
-        await #expect(throws: FrescoError.self) {
-            try await client.upload(
-                data: Data([0x01]),
-                key: "images/test.jpg",
-                contentType: "image/jpeg",
-                cacheControl: "public, max-age=3600"
-            )
         }
     }
 }
