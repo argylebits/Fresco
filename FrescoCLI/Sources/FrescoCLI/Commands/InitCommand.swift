@@ -111,7 +111,56 @@ struct InitCommand: AsyncParsableCommand {
             print("Created gallery.md")
         }
 
-        print("Fresco initialized! Run `fresco generate` to create your first image.")
+        setGitHubSecrets([
+            "FRESCO_PROMPT": resolvedPrompt,
+            "FRESCO_SLUG": resolvedSlug,
+            "FRESCO_NAME": resolvedName,
+            "FRESCO_SCHEDULE": resolvedSchedule,
+            "FRESCO_SCHEDULE_HOUR": "\(resolvedScheduleHour)",
+            "GEMINI_API_KEY": resolvedGeminiKey,
+            "R2_ACCOUNT_ID": resolvedR2AccountId,
+            "R2_ACCESS_KEY_ID": resolvedR2AccessKeyId,
+            "R2_SECRET_ACCESS_KEY": resolvedR2SecretAccessKey,
+            "R2_BUCKET": resolvedR2Bucket,
+            "R2_PUBLIC_BASE_URL": resolvedR2PublicBaseUrl,
+        ])
+
+        print("\nFresco initialized!")
+
+        if defaults {
+            print("Run `fresco generate` to create your first image.")
+        } else {
+            print("Run `fresco generate` now? [y/N]: ", terminator: "")
+            if let input = readLine(), input.lowercased() == "y" {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+                process.arguments = ["fresco", "generate"]
+                try process.run()
+                process.waitUntilExit()
+            }
+        }
+    }
+
+    private func setGitHubSecrets(_ secrets: [String: String]) {
+        let ghPath = "/usr/bin/env"
+        for (key, value) in secrets.sorted(by: { $0.key < $1.key }) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: ghPath)
+            process.arguments = ["gh", "secret", "set", key, "--body", value]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            do {
+                try process.run()
+                process.waitUntilExit()
+                if process.terminationStatus == 0 {
+                    print("Set secret \(key)")
+                } else {
+                    print("Warning: could not set secret \(key) (is `gh` installed and authenticated?)")
+                }
+            } catch {
+                print("Warning: could not set secret \(key) (is `gh` installed?)")
+            }
+        }
     }
 
     private func resolveInt(_ label: String, default defaultValue: Int) -> Int {
