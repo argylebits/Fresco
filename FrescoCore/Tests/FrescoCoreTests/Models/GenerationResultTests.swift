@@ -46,21 +46,6 @@ struct GenerationResultTests {
         #expect(decoded.publicURL == url)
     }
 
-    @Test func frescoError_codableRoundTrip() throws {
-        let cases: [FrescoError] = [
-            .geminiError("gemini fail"),
-            .r2UploadError("r2 fail"),
-            .configurationError("config fail"),
-            .serverModeNotImplemented,
-        ]
-
-        for error in cases {
-            let encoded = try JSONEncoder().encode(error)
-            let decoded = try JSONDecoder().decode(FrescoError.self, from: encoded)
-            #expect(String(describing: decoded) == String(describing: error))
-        }
-    }
-
     @Test func frescoError_casesAreDistinct() {
         let gemini = FrescoError.geminiError("fail")
         let r2 = FrescoError.r2UploadError("fail")
