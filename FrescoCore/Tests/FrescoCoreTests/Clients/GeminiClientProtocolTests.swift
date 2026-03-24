@@ -4,7 +4,7 @@ import Testing
 
 struct GeminiClientProtocolTests {
     struct MockGeminiClient: GeminiClientProtocol {
-        var result: Data = Data()
+        let result: Data
 
         func generateImage(prompt: String) async throws -> Data {
             result
@@ -13,13 +13,15 @@ struct GeminiClientProtocolTests {
 
     @Test func protocol_requiresGenerateImageMethod() async throws {
         let expected = Data([0xFF, 0xD8, 0xFF])
-        let client = MockGeminiClient(result: expected)
+        let client: any GeminiClientProtocol = MockGeminiClient(result: expected)
         let data = try await client.generateImage(prompt: "a sunset")
         #expect(data == expected)
     }
 
+    private func requireSendable<T: Sendable>(_: T) {}
+
     @Test func protocol_isSendable() {
-        let client: any GeminiClientProtocol & Sendable = MockGeminiClient()
-        #expect(client is any GeminiClientProtocol)
+        let client: any GeminiClientProtocol & Sendable = MockGeminiClient(result: Data())
+        requireSendable(client)
     }
 }
