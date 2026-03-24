@@ -9,11 +9,19 @@ struct ReadmeUpdater: Sendable {
         var lines = content.components(separatedBy: "\n")
 
         if let markerIndex = lines.firstIndex(where: { $0.contains(marker) }) {
-            let nextIndex = markerIndex + 1
-            if nextIndex < lines.count && lines[nextIndex].hasPrefix("![Fresco](") {
-                lines[nextIndex] = imageLine
+            // Find existing Fresco image line after marker, skipping blank lines
+            var imageIndex: Int?
+            for i in (markerIndex + 1)..<lines.count {
+                let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty { continue }
+                if trimmed.hasPrefix("![Fresco](") { imageIndex = i }
+                break
+            }
+
+            if let imageIndex {
+                lines[imageIndex] = imageLine
             } else {
-                lines.insert(imageLine, at: nextIndex)
+                lines.insert(imageLine, at: markerIndex + 1)
             }
         } else {
             // Insert after the first line (title)

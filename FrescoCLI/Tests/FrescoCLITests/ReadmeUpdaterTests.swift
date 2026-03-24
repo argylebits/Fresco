@@ -20,9 +20,10 @@ struct ReadmeUpdaterTests {
 
         try updater.insertImageURL(in: tmp, imageURL: imageURL)
 
-        let result = try String(contentsOfFile: tmp, encoding: .utf8)
-        #expect(result.contains("<!-- Fresco image -->"))
-        #expect(result.contains("![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)"))
+        let lines = try String(contentsOfFile: tmp, encoding: .utf8).components(separatedBy: "\n")
+        let markerIndex = lines.firstIndex(where: { $0.contains("<!-- Fresco image -->") })
+        #expect(markerIndex != nil)
+        #expect(lines[markerIndex! + 1] == "![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)")
     }
 
     @Test func insertImageURL_replacesExistingImage() throws {
@@ -40,9 +41,32 @@ struct ReadmeUpdaterTests {
 
         try updater.insertImageURL(in: tmp, imageURL: imageURL)
 
-        let result = try String(contentsOfFile: tmp, encoding: .utf8)
-        #expect(!result.contains("old-url.example.com"))
-        #expect(result.contains("![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)"))
+        let lines = try String(contentsOfFile: tmp, encoding: .utf8).components(separatedBy: "\n")
+        #expect(!lines.contains(where: { $0.contains("old-url.example.com") }))
+        let markerIndex = lines.firstIndex(where: { $0.contains("<!-- Fresco image -->") })
+        #expect(markerIndex != nil)
+        #expect(lines[markerIndex! + 1] == "![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)")
+    }
+
+    @Test func insertImageURL_replacesExistingImage_withBlankLineAfterMarker() throws {
+        let tmp = NSTemporaryDirectory() + "readme-blankline-\(UUID().uuidString).md"
+        let content = """
+            # My Project
+
+            <!-- Fresco image -->
+
+            ![Fresco](https://old-url.example.com/old.jpg)
+
+            Some other content.
+            """
+        try content.write(toFile: tmp, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(atPath: tmp) }
+
+        try updater.insertImageURL(in: tmp, imageURL: imageURL)
+
+        let lines = try String(contentsOfFile: tmp, encoding: .utf8).components(separatedBy: "\n")
+        #expect(!lines.contains(where: { $0.contains("old-url.example.com") }))
+        #expect(lines.contains(where: { $0 == "![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)" }))
     }
 
     @Test func insertImageURL_noMarker_addsMarkerAndImage() throws {
@@ -57,8 +81,9 @@ struct ReadmeUpdaterTests {
 
         try updater.insertImageURL(in: tmp, imageURL: imageURL)
 
-        let result = try String(contentsOfFile: tmp, encoding: .utf8)
-        #expect(result.contains("<!-- Fresco image -->"))
-        #expect(result.contains("![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)"))
+        let lines = try String(contentsOfFile: tmp, encoding: .utf8).components(separatedBy: "\n")
+        let markerIndex = lines.firstIndex(where: { $0.contains("<!-- Fresco image -->") })
+        #expect(markerIndex != nil)
+        #expect(lines[markerIndex! + 1] == "![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)")
     }
 }
