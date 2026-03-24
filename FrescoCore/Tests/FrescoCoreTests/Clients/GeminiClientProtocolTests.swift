@@ -6,7 +6,7 @@ struct GeminiClientProtocolTests {
     struct MockGeminiClient: GeminiClientProtocol {
         let result: Data
 
-        func generateImage(prompt: String) async throws -> Data {
+        func generateImage(prompt: String) async throws(FrescoError) -> Data {
             result
         }
     }
