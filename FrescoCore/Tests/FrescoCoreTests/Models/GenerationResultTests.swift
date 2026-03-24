@@ -23,6 +23,44 @@ struct GenerationResultTests {
         #expect(result.publicURL == url)
     }
 
+    @Test func generationResult_codableRoundTrip() throws {
+        let date = Date()
+        let data = Data([1, 2, 3])
+        let url = URL(string: "https://example.com/test/image.jpg")!
+
+        let original = GenerationResult(
+            date: date,
+            prompt: "a test prompt",
+            imageData: data,
+            r2Key: "test/image.jpg",
+            publicURL: url
+        )
+
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(GenerationResult.self, from: encoded)
+
+        #expect(decoded.date == date)
+        #expect(decoded.prompt == "a test prompt")
+        #expect(decoded.imageData == data)
+        #expect(decoded.r2Key == "test/image.jpg")
+        #expect(decoded.publicURL == url)
+    }
+
+    @Test func frescoError_codableRoundTrip() throws {
+        let cases: [FrescoError] = [
+            .geminiError("gemini fail"),
+            .r2UploadError("r2 fail"),
+            .configurationError("config fail"),
+            .serverModeNotImplemented,
+        ]
+
+        for error in cases {
+            let encoded = try JSONEncoder().encode(error)
+            let decoded = try JSONDecoder().decode(FrescoError.self, from: encoded)
+            #expect(String(describing: decoded) == String(describing: error))
+        }
+    }
+
     @Test func frescoError_casesAreDistinct() {
         let gemini = FrescoError.geminiError("fail")
         let r2 = FrescoError.r2UploadError("fail")
