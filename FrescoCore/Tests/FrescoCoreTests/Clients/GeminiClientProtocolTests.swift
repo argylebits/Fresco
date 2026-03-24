@@ -21,7 +21,7 @@ struct GeminiClientProtocolTests {
     private func requireSendable<T: Sendable>(_: T) {}
 
     @Test func protocol_isSendable() {
-        let client: any GeminiClientProtocol & Sendable = MockGeminiClient(result: Data())
+        let client: any GeminiClientProtocol = MockGeminiClient(result: Data())
         requireSendable(client)
     }
 }
