@@ -11,12 +11,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
+        .package(url: "https://github.com/apple/swift-configuration.git", from: "1.0.0"),
     ],
     targets: [
         .target(
             name: "FrescoCore",
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "Configuration", package: "swift-configuration"),
             ]
         ),
         .testTarget(
