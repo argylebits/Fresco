@@ -67,11 +67,12 @@ struct R2ClientTests {
             date: fixedDate
         )
 
-        let auth = request.value(forHTTPHeaderField: "Authorization")
-        #expect(auth != nil)
-        #expect(auth!.hasPrefix("AWS4-HMAC-SHA256 Credential=test-key-id/20260324/auto/s3/aws4_request"))
         #expect(request.value(forHTTPHeaderField: "x-amz-date") == "20260324T120000Z")
         #expect(request.value(forHTTPHeaderField: "x-amz-content-sha256") != nil)
+        #expect(
+            request.value(forHTTPHeaderField: "Authorization")
+                == "AWS4-HMAC-SHA256 Credential=test-key-id/20260324/auto/s3/aws4_request, SignedHeaders=cache-control;content-type;host;x-amz-content-sha256;x-amz-date, Signature=b5dd220bfbc2df4a32ba652e4dfb5fed18b4710598639124ad531b87baefa8f1"
+        )
     }
 
     @Test func buildRequest_signatureIsDeterministic() throws {
@@ -88,6 +89,23 @@ struct R2ClientTests {
         )
 
         #expect(request1.value(forHTTPHeaderField: "Authorization") == request2.value(forHTTPHeaderField: "Authorization"))
+    }
+
+    @Test func buildRequest_encodesSpecialCharactersInKey() throws {
+        let client = makeClient()
+        let request = try client.buildRequest(
+            data: Data([0x01]),
+            key: "images/my folder/test.jpg",
+            contentType: "image/jpeg",
+            cacheControl: "public, max-age=3600",
+            date: fixedDate
+        )
+
+        #expect(request.url?.absoluteString == "https://test-account.r2.cloudflarestorage.com/test-bucket/images/my%20folder/test.jpg")
+        #expect(
+            request.value(forHTTPHeaderField: "Authorization")
+                == "AWS4-HMAC-SHA256 Credential=test-key-id/20260324/auto/s3/aws4_request, SignedHeaders=cache-control;content-type;host;x-amz-content-sha256;x-amz-date, Signature=242757af9295abb407f4414af8d232e55281e3890f81c161de4eac034be49e54"
+        )
     }
 
     @Test func handleResponse_successDoesNotThrow() throws {

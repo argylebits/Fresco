@@ -62,7 +62,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
         }
 
         let url = baseURL.appendingPathComponent(bucket).appendingPathComponent(key)
-        let path = url.path
+        let path = url.path(percentEncoded: true)
 
         let amzDate = date.formatted(
             .iso8601.year().month().day()
@@ -89,7 +89,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
             "content-type:\(contentType)",
             "host:\(host)",
             "x-amz-content-sha256:\(payloadHash)",
-            "x-amz-date:\(amzDate)",
+            "x-amz-date:\(amzDate)\n",
         ].joined(separator: "\n")
 
         let canonicalRequest = [
@@ -97,7 +97,6 @@ public struct R2Client: R2ClientProtocol, Sendable {
             path,
             "",
             canonicalHeaders,
-            "",
             signedHeaders,
             payloadHash,
         ].joined(separator: "\n")
