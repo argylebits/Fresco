@@ -1,6 +1,5 @@
 import ArgumentParser
 import Foundation
-import FrescoCore
 
 struct InitCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -48,11 +47,17 @@ struct InitCommand: AsyncParsableCommand {
     var force: Bool = false
 
     mutating func run() async throws {
+        let envPath = ".env"
+        if FileManager.default.fileExists(atPath: envPath) && !force {
+            print(".env already exists. Use --force to overwrite.")
+            throw ExitCode.failure
+        }
+
         let resolvedName = name ?? resolve("Project name", default: "My Project")
         let resolvedSlug = slug ?? resolve("Project slug", default: "my-project")
         let resolvedPrompt = prompt ?? resolve("Image generation prompt", default: "A fresco like the ones you'd see in central Texas, tagged with graffiti art that says Fresco. 4:1.")
         let resolvedSchedule = schedule ?? resolve("Schedule (daily, weekly, monthly, quarterly, annual)", default: "daily")
-        let resolvedScheduleHour = scheduleHour ?? Int(resolve("Schedule hour (0-23 UTC)", default: "3"))!
+        let resolvedScheduleHour = scheduleHour ?? resolveInt("Schedule hour (0-23 UTC)", default: 3)
         let resolvedGeminiKey = geminiKey ?? resolve("Gemini API key", default: "your-gemini-api-key")
         let resolvedR2AccountId = r2AccountId ?? resolve("R2 account ID", default: "your-cloudflare-account-id")
         let resolvedR2AccessKeyId = r2AccessKeyId ?? resolve("R2 access key ID", default: "your-r2-access-key-id")
@@ -61,32 +66,31 @@ struct InitCommand: AsyncParsableCommand {
         let resolvedR2PublicBaseUrl = r2PublicBaseUrl ?? resolve("R2 public base URL", default: "https://pub-xxxx.r2.dev")
 
         let envContent = """
-            FRESCO_PROMPT=\(resolvedPrompt)
-            FRESCO_SLUG=\(resolvedSlug)
-            FRESCO_NAME=\(resolvedName)
-            FRESCO_SCHEDULE=\(resolvedSchedule)
-            FRESCO_SCHEDULE_HOUR=\(resolvedScheduleHour)
+            FRESCO_PROMPT="\(resolvedPrompt)"
+            FRESCO_SLUG="\(resolvedSlug)"
+            FRESCO_NAME="\(resolvedName)"
+            FRESCO_SCHEDULE="\(resolvedSchedule)"
+            FRESCO_SCHEDULE_HOUR="\(resolvedScheduleHour)"
 
-            GEMINI_API_KEY=\(resolvedGeminiKey)
-            R2_ACCOUNT_ID=\(resolvedR2AccountId)
-            R2_ACCESS_KEY_ID=\(resolvedR2AccessKeyId)
-            R2_SECRET_ACCESS_KEY=\(resolvedR2SecretAccessKey)
-            R2_BUCKET=\(resolvedR2Bucket)
-            R2_PUBLIC_BASE_URL=\(resolvedR2PublicBaseUrl)
+            GEMINI_API_KEY="\(resolvedGeminiKey)"
+            R2_ACCOUNT_ID="\(resolvedR2AccountId)"
+            R2_ACCESS_KEY_ID="\(resolvedR2AccessKeyId)"
+            R2_SECRET_ACCESS_KEY="\(resolvedR2SecretAccessKey)"
+            R2_BUCKET="\(resolvedR2Bucket)"
+            R2_PUBLIC_BASE_URL="\(resolvedR2PublicBaseUrl)"
             """
 
-        let envPath = ".env"
-        if FileManager.default.fileExists(atPath: envPath) && !force {
-            print(".env already exists. Use --force to overwrite.")
-            throw ExitCode.failure
-        }
         try envContent.write(toFile: envPath, atomically: true, encoding: .utf8)
         print("Wrote .env")
 
         let workflowWriter = WorkflowWriter()
         let workflowPath = ".github/workflows/fresco.yml"
-        try workflowWriter.writeWorkflow(to: workflowPath, schedule: resolvedSchedule, scheduleHour: resolvedScheduleHour)
-        print("Wrote \(workflowPath)")
+        if FileManager.default.fileExists(atPath: workflowPath) && !force {
+            print("\(workflowPath) already exists. Skipping. Use --force to overwrite.")
+        } else {
+            try workflowWriter.writeWorkflow(to: workflowPath, schedule: resolvedSchedule, scheduleHour: resolvedScheduleHour)
+            print("Wrote \(workflowPath)")
+        }
 
         let todayURL = "\(resolvedR2PublicBaseUrl)/\(resolvedSlug)/today.jpg"
         let readmePath = "README.md"
@@ -108,6 +112,17 @@ struct InitCommand: AsyncParsableCommand {
         }
 
         print("Fresco initialized! Run `fresco generate` to create your first image.")
+    }
+
+    private func resolveInt(_ label: String, default defaultValue: Int) -> Int {
+        if defaults {
+            return defaultValue
+        }
+        print("\(label) [\(defaultValue)]: ", terminator: "")
+        guard let input = readLine(), !input.isEmpty else {
+            return defaultValue
+        }
+        return Int(input) ?? defaultValue
     }
 
     private func resolve(_ label: String, default defaultValue: String) -> String {
