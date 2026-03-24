@@ -56,7 +56,6 @@ fresco generate
 - Write `.github/workflows/fresco.yml` for scheduled automation
 - Add the image URL to your README
 - Create `gallery.md` for image history
-- Set GitHub Actions secrets (requires `gh` CLI)
 
 ---
 
@@ -78,7 +77,7 @@ The GitHub Actions workflow reads credentials from repository secrets. Add these
 | `R2_BUCKET` | R2 bucket name |
 | `R2_PUBLIC_BASE_URL` | Public base URL for R2 images |
 
-`fresco init` will attempt to set these automatically via `gh secret set`. You can also set them manually or use the values from your `.env` file.
+Use the same values from your `.env` file, or set them manually.
 
 ---
 
