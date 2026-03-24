@@ -1,7 +1,12 @@
 import Foundation
+import FrescoCore
 
 struct WorkflowWriter: Sendable {
-    func cronExpression(schedule: String, hour: Int) -> String {
+    func cronExpression(schedule: String, hour: Int) throws(FrescoError) -> String {
+        guard (0...23).contains(hour) else {
+            throw FrescoError.configurationError("Invalid schedule hour: \(hour). Must be 0-23.")
+        }
+
         switch schedule {
         case "daily":
             return "0 \(hour) * * *"
@@ -14,19 +19,21 @@ struct WorkflowWriter: Sendable {
         case "annual":
             return "0 \(hour) 1 1 *"
         default:
-            return "0 \(hour) * * *"
+            throw FrescoError.configurationError("Invalid schedule: \(schedule). Must be daily, weekly, monthly, quarterly, or annual.")
         }
     }
 
     func writeWorkflow(to path: String, schedule: String, scheduleHour: Int) throws {
-        let cron = cronExpression(schedule: schedule, hour: scheduleHour)
+        let cron = try cronExpression(schedule: schedule, hour: scheduleHour)
         let template = workflowTemplate(cron: cron)
 
         let directory = (path as NSString).deletingLastPathComponent
-        try FileManager.default.createDirectory(
-            atPath: directory,
-            withIntermediateDirectories: true
-        )
+        if !directory.isEmpty {
+            try FileManager.default.createDirectory(
+                atPath: directory,
+                withIntermediateDirectories: true
+            )
+        }
 
         try template.write(toFile: path, atomically: true, encoding: .utf8)
     }
@@ -38,7 +45,7 @@ struct WorkflowWriter: Sendable {
         on:
           schedule:
             - cron: '\(cron)'
-          workflow_dispatch:
+          workflow_dispatch:        # manual trigger from GitHub UI
 
         jobs:
           generate:

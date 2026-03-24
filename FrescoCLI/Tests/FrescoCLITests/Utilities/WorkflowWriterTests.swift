@@ -1,4 +1,5 @@
 import Foundation
+import FrescoCore
 import Testing
 
 @testable import FrescoCLI
@@ -8,28 +9,49 @@ struct WorkflowWriterTests {
     private let writer = WorkflowWriter()
 
     @Test("cronExpression for daily schedule")
-    func cronExpressionDaily() {
-        #expect(writer.cronExpression(schedule: "daily", hour: 8) == "0 8 * * *")
+    func cronExpressionDaily() throws {
+        #expect(try writer.cronExpression(schedule: "daily", hour: 8) == "0 8 * * *")
     }
 
     @Test("cronExpression for weekly schedule")
-    func cronExpressionWeekly() {
-        #expect(writer.cronExpression(schedule: "weekly", hour: 12) == "0 12 * * 1")
+    func cronExpressionWeekly() throws {
+        #expect(try writer.cronExpression(schedule: "weekly", hour: 12) == "0 12 * * 1")
     }
 
     @Test("cronExpression for monthly schedule")
-    func cronExpressionMonthly() {
-        #expect(writer.cronExpression(schedule: "monthly", hour: 0) == "0 0 1 * *")
+    func cronExpressionMonthly() throws {
+        #expect(try writer.cronExpression(schedule: "monthly", hour: 0) == "0 0 1 * *")
     }
 
     @Test("cronExpression for quarterly schedule")
-    func cronExpressionQuarterly() {
-        #expect(writer.cronExpression(schedule: "quarterly", hour: 6) == "0 6 1 1,4,7,10 *")
+    func cronExpressionQuarterly() throws {
+        #expect(try writer.cronExpression(schedule: "quarterly", hour: 6) == "0 6 1 1,4,7,10 *")
     }
 
     @Test("cronExpression for annual schedule")
-    func cronExpressionAnnual() {
-        #expect(writer.cronExpression(schedule: "annual", hour: 23) == "0 23 1 1 *")
+    func cronExpressionAnnual() throws {
+        #expect(try writer.cronExpression(schedule: "annual", hour: 23) == "0 23 1 1 *")
+    }
+
+    @Test("cronExpression throws for invalid schedule")
+    func cronExpressionInvalidSchedule() {
+        #expect(throws: FrescoError.self) {
+            try writer.cronExpression(schedule: "biweekly", hour: 8)
+        }
+    }
+
+    @Test("cronExpression throws for negative hour")
+    func cronExpressionNegativeHour() {
+        #expect(throws: FrescoError.self) {
+            try writer.cronExpression(schedule: "daily", hour: -1)
+        }
+    }
+
+    @Test("cronExpression throws for hour above 23")
+    func cronExpressionHourAbove23() {
+        #expect(throws: FrescoError.self) {
+            try writer.cronExpression(schedule: "daily", hour: 24)
+        }
     }
 
     @Test("writeWorkflow creates file with correct cron expression")
