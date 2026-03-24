@@ -47,6 +47,9 @@ struct WorkflowWriter: Sendable {
             - cron: '\(cron)'
           workflow_dispatch:        # manual trigger from GitHub UI
 
+        permissions:
+          contents: write
+
         jobs:
           generate:
             runs-on: macos-latest
@@ -76,8 +79,8 @@ struct WorkflowWriter: Sendable {
 
               - name: Commit gallery update
                 run: |
-                  git config user.name "Fresco"
-                  git config user.email "fresco@argylebits.com"
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git add gallery.md
                   git diff --staged --quiet || git commit -m "fresco: $(date +%Y-%m-%d)"
                   git push
