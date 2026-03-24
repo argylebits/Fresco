@@ -1,5 +1,7 @@
 # Fresco
 
+> **Note:** Fresco is under active development. The features described below reflect the intended design — see the [Vision & Roadmap](FrescoDocs/VISION.md) for current status.
+
 **Scheduled AI-generated images for any project.**
 
 Fresco is a CLI tool that generates images on a schedule — daily, weekly, monthly, quarterly, or annual — using the Google Gemini Imagen API and publishes them to Cloudflare R2. Drop the stable URL into any README, website, or app — it updates itself.
@@ -54,6 +56,33 @@ fresco generate
 - Write `.github/workflows/fresco.yml` for daily automation
 - Add the image URL to your README
 - Generate your first image immediately
+
+---
+
+## Usage
+
+**Run it manually from the command line:**
+
+```bash
+fresco generate
+fresco generate --prompt "A sunset over the Hill Country"
+fresco generate --append "Celebrating release v2.1.0"
+```
+
+**Run it on a schedule via GitHub Actions:**
+
+`fresco init` generates a workflow at `.github/workflows/fresco.yml` that runs `fresco generate` on a cron schedule.
+
+**Trigger it from any workflow:**
+
+```yaml
+on:
+  release:
+    types: [published]
+
+steps:
+  - run: fresco generate --append "Release v${{ github.event.release.tag_name }}"
+```
 
 ---
 
