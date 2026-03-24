@@ -65,6 +65,10 @@ struct InitCommand: AsyncParsableCommand {
         let resolvedR2Bucket = r2Bucket ?? resolve("R2 bucket name", default: "fresco-images")
         let resolvedR2PublicBaseUrl = r2PublicBaseUrl ?? resolve("R2 public base URL", default: "https://pub-xxxx.r2.dev")
 
+        // Validate before writing any files
+        let workflowWriter = WorkflowWriter()
+        _ = try workflowWriter.cronExpression(schedule: resolvedSchedule, hour: resolvedScheduleHour)
+
         let envContent = """
             FRESCO_PROMPT="\(resolvedPrompt)"
             FRESCO_SLUG="\(resolvedSlug)"
@@ -81,9 +85,9 @@ struct InitCommand: AsyncParsableCommand {
             """
 
         try envContent.write(toFile: envPath, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: envPath)
         print("Wrote .env")
 
-        let workflowWriter = WorkflowWriter()
         let workflowPath = ".github/workflows/fresco.yml"
         if FileManager.default.fileExists(atPath: workflowPath) && !force {
             print("\(workflowPath) already exists. Skipping. Use --force to overwrite.")

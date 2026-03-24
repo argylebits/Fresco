@@ -61,6 +61,10 @@ struct InitCommandTests {
             #expect(env.contains("FRESCO_SLUG=\"test-slug\""))
             #expect(env.contains("GEMINI_API_KEY=\"gkey\""))
             #expect(env.contains("R2_BUCKET=\"bucket\""))
+
+            let attrs = try FileManager.default.attributesOfItem(atPath: dir + "/.env")
+            let permissions = attrs[.posixPermissions] as? Int
+            #expect(permissions == 0o600)
         }
     }
 
