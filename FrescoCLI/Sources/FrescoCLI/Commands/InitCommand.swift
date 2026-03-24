@@ -75,7 +75,6 @@ struct InitCommand: AsyncParsableCommand {
             FRESCO_NAME="\(resolvedName)"
             FRESCO_SCHEDULE="\(resolvedSchedule)"
             FRESCO_SCHEDULE_HOUR="\(resolvedScheduleHour)"
-
             GEMINI_API_KEY="\(resolvedGeminiKey)"
             R2_ACCOUNT_ID="\(resolvedR2AccountId)"
             R2_ACCESS_KEY_ID="\(resolvedR2AccessKeyId)"
