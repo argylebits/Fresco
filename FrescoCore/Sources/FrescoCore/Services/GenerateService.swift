@@ -32,7 +32,13 @@ public struct GenerateService: Sendable {
             cacheControl: "public, max-age=3600"
         )
 
-        let publicURL = URL(string: "\(publicBaseURL)/\(archiveKey)")!
+        guard let baseURL = URL(string: publicBaseURL) else {
+            throw FrescoError.configurationError("Invalid publicBaseURL: \(publicBaseURL)")
+        }
+
+        let publicURL = baseURL
+            .appendingPathComponent(slug)
+            .appendingPathComponent("\(dateString).jpg")
 
         return GenerationResult(
             date: date,
