@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 public struct GeminiClient: GeminiClientProtocol, Sendable {
     public let apiKey: String
