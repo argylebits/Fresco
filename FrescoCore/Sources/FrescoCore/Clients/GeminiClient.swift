@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -34,7 +35,22 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
     }
 
     public func generateImage(prompt: String) async throws(FrescoError) -> Data {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict") else {
+        let request = try buildRequest(prompt: prompt)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw .geminiError("Gemini request failed: \(error.localizedDescription)")
+        }
+
+        return try handleResponse(data: data, response: response)
+    }
+
+    func buildRequest(prompt: String) throws(FrescoError) -> URLRequest {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict")
+        else {
             throw .geminiError("Invalid Gemini endpoint URL")
         }
 
@@ -53,14 +69,10 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
             throw .geminiError("Failed to serialize request body: \(error.localizedDescription)")
         }
 
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            throw .geminiError("Gemini request failed: \(error.localizedDescription)")
-        }
+        return request
+    }
 
+    func handleResponse(data: Data, response: URLResponse) throws(FrescoError) -> Data {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw .geminiError("Invalid response")
         }
@@ -84,7 +96,8 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
         }
 
         guard let base64String = geminiResponse.predictions.first?.bytesBase64Encoded,
-              let imageData = Data(base64Encoded: base64String) else {
+            let imageData = Data(base64Encoded: base64String)
+        else {
             throw .geminiError("Failed to decode image from response")
         }
 
