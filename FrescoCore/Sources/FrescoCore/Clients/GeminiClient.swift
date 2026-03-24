@@ -25,8 +25,8 @@ struct GeminiResponse: Codable, Sendable {
 }
 
 public struct GeminiClient: GeminiClientProtocol, Sendable {
-    public let apiKey: String
-    public let session: URLSession
+    let apiKey: String
+    let session: URLSession
 
     public init(apiKey: String, session: URLSession = .shared) {
         self.apiKey = apiKey
@@ -58,7 +58,7 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw .geminiError(error.localizedDescription)
+            throw .geminiError("Gemini request failed: \(error.localizedDescription)")
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -66,7 +66,13 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "HTTP \(httpResponse.statusCode)"
+            let bodyText = String(data: data, encoding: .utf8)
+            let message: String
+            if let bodyText, !bodyText.isEmpty {
+                message = "HTTP \(httpResponse.statusCode): \(bodyText)"
+            } else {
+                message = "HTTP \(httpResponse.statusCode)"
+            }
             throw .geminiError(message)
         }
 
