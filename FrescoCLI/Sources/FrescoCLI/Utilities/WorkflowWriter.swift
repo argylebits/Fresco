@@ -49,6 +49,7 @@ struct WorkflowWriter: Sendable {
 
         permissions:
           contents: write
+          pull-requests: write
 
         jobs:
           generate:
@@ -77,13 +78,27 @@ struct WorkflowWriter: Sendable {
                   R2_BUCKET:             ${{ secrets.R2_BUCKET }}
                   R2_PUBLIC_BASE_URL:    ${{ secrets.R2_PUBLIC_BASE_URL }}
 
-              - name: Commit gallery update
+              - name: Create PR with gallery update
                 run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git add gallery.md
-                  git diff --staged --quiet || git commit -m "fresco: $(date +%Y-%m-%d)"
-                  git push
+                  if git diff --staged --quiet; then
+                    echo "No gallery changes to commit."
+                    exit 0
+                  fi
+                  DATE="$(date +%Y-%m-%d)"
+                  BRANCH="fresco/gallery-${DATE}-${{ github.run_id }}"
+                  git checkout -b "$BRANCH"
+                  git commit -m "fresco: ${DATE}"
+                  git push origin "$BRANCH"
+                  gh pr create \
+                    --title "fresco: ${DATE}" \
+                    --body "Automated gallery update from Fresco image generation." \
+                    --base main \
+                    --head "$BRANCH"
+                env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         """
     }
 }
