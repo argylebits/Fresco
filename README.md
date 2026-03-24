@@ -1,8 +1,8 @@
 # Fresco
 
-**Daily AI-generated images for any project.**
+**Scheduled AI-generated images for any project.**
 
-Fresco is a CLI tool that generates a fresh image every day using the Google Gemini Imagen API and publishes it to Cloudflare R2. Drop the stable URL into any README, website, or app — it updates itself.
+Fresco is a CLI tool that generates images on a schedule — daily, weekly, monthly, quarterly, or annual — using the Google Gemini Imagen API and publishes them to Cloudflare R2. Drop the stable URL into any README, website, or app — it updates itself.
 
 ![Daily Fresco](https://pub-placeholder.r2.dev/fresco/today.jpg)
 
@@ -30,6 +30,7 @@ That image changes every day. You never touch it again.
 
 ## Install
 
+<!-- TODO: Update once Homebrew tap is published -->
 ```bash
 brew install argylebits/fresco
 ```
