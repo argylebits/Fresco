@@ -34,6 +34,7 @@ jobs:
         with:
           name: fresco-macos-${{ matrix.arch }}
           path: fresco-macos-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
 
   build-linux:
     name: Linux (${{ matrix.arch }})
@@ -62,6 +63,7 @@ jobs:
         with:
           name: fresco-linux-${{ matrix.arch }}
           path: fresco-linux-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
 
   release:
     name: Create Release
