@@ -148,7 +148,7 @@ jobs:
 
           gh api -X PUT repos/argylebits/homebrew-tap/contents/Formula/fresco.rb \
             -f message="Update fresco formula to ${VERSION}" \
-            -f content="$(printf '%s' "$FORMULA" | base64 -w0)" \
+            -f content="$(printf '%s\n' "$FORMULA" | base64 -w0)" \
             -f sha="$EXISTING"
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
