@@ -25,8 +25,8 @@ struct GenerateServiceTests {
             date: Self.testDate
         )
 
-        #expect(result.r2Key == "my-wallpaper/2025-01-01.jpg")
-        #expect(result.publicURL == URL(string: "https://cdn.example.com/my-wallpaper/2025-01-01.jpg")!)
+        #expect(result.r2Key == "my-wallpaper/2025-01-01-000000.jpg")
+        #expect(result.publicURL == URL(string: "https://cdn.example.com/my-wallpaper/2025-01-01-000000.jpg")!)
     }
 
     @Test("generate returns result with imageData and prompt")

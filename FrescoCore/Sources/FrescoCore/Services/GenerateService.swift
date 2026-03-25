@@ -14,8 +14,8 @@ public struct GenerateService: Sendable {
     public func generate(prompt: String, slug: String, date: Date) async throws(FrescoError) -> GenerationResult {
         let imageData = try await gemini.generateImage(prompt: prompt)
 
-        let dateString = ISO8601DateFormatter.dateOnlyString(from: date)
-        let archiveKey = "\(slug)/\(dateString).jpg"
+        let archiveDateString = ISO8601DateFormatter.archiveKeyString(from: date)
+        let archiveKey = "\(slug)/\(archiveDateString).jpg"
         let todayKey = "\(slug)/today.jpg"
 
         try await r2.upload(
@@ -38,7 +38,7 @@ public struct GenerateService: Sendable {
 
         let publicURL = baseURL
             .appendingPathComponent(slug)
-            .appendingPathComponent("\(dateString).jpg")
+            .appendingPathComponent("\(archiveDateString).jpg")
 
         return GenerationResult(
             date: date,
