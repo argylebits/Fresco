@@ -143,7 +143,7 @@ struct InitCommand: AsyncParsableCommand {
     }
 }
 
-extension String {
+private extension String {
     var escapedForEnv: String {
         replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
