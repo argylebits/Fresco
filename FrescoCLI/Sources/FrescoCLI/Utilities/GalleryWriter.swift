@@ -1,7 +1,7 @@
 import Foundation
 import FrescoCore
 
-struct GalleryWriter: Sendable {
+struct GalleryWriter: GalleryWriterProtocol {
     static let marker = "<!-- Fresco appends new entries below this line on each generation -->"
     private let tableHeader = "| Date | Image |"
     private let tableSeparator = "|------|-------|"
