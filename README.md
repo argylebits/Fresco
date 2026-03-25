@@ -1,4 +1,5 @@
-![Daily Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/2026-03-25-131701.jpg)
+<!-- Fresco image -->
+![Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/2026-03-25-131701.jpg)
 
 # Fresco
 

@@ -65,6 +65,10 @@ struct GenerateCommand: AsyncParsableCommand {
             imageURL: result.publicURL.absoluteString
         )
 
+        if FileManager.default.fileExists(atPath: "README.md") {
+            try ReadmeUpdater().insertImageURL(in: "README.md", imageURL: result.publicURL.absoluteString)
+        }
+
         print(result.publicURL.absoluteString)
     }
 
