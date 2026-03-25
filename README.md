@@ -1,4 +1,4 @@
-![Daily Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/today.jpg)
+![Daily Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/2026-03-25-131701.jpg)
 
 # Fresco
 
@@ -18,13 +18,7 @@ fresco generate
   → updates gallery.md
 ```
 
-Your project just points at a stable URL:
-
-```markdown
-![Daily Image](https://pub-xxxx.r2.dev/your-project/today.jpg)
-```
-
-That image changes every day. You never touch it again.
+Each generation uploads a dated image and updates `gallery.md`. The workflow commits the gallery update as a PR.
 
 ---
 
