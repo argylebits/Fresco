@@ -73,6 +73,30 @@ struct GenerateCommandTests {
         #expect(url?.contains("https://example.com/test-slug/") == true)
     }
 
+    @Test func configKeys_resolveToExpectedEnvVarNames() {
+        let config = ConfigReader(provider: EnvironmentVariablesProvider(
+            environmentVariables: [
+                "FRESCO_PROMPT": "test",
+                "FRESCO_SLUG": "test",
+                "GEMINI_API_KEY": "test",
+                "R2_ACCOUNT_ID": "test-account",
+                "R2_ACCESS_KEY_ID": "test-access",
+                "R2_SECRET_ACCESS_KEY": "test-secret",
+                "R2_BUCKET": "test-bucket",
+                "R2_PUBLIC_BASE_URL": "https://example.com",
+            ]
+        ))
+
+        #expect(config.string(forKey: "frescoPrompt") == "test")
+        #expect(config.string(forKey: "frescoSlug") == "test")
+        #expect(config.string(forKey: "geminiApiKey") == "test")
+        #expect(config.string(forKey: "r2.accountId") == "test-account")
+        #expect(config.string(forKey: "r2.accessKeyId") == "test-access")
+        #expect(config.string(forKey: "r2.secretAccessKey") == "test-secret")
+        #expect(config.string(forKey: "r2.bucket") == "test-bucket")
+        #expect(config.string(forKey: "r2.publicBaseUrl") == "https://example.com")
+    }
+
     // MARK: - Helpers
 
     private func makeCommand(
@@ -83,7 +107,7 @@ struct GenerateCommandTests {
     ) throws -> GenerateCommand {
         var fullConfig = config
         if fullConfig["frescoSlug"] == nil { fullConfig["frescoSlug"] = "test-slug" }
-        if fullConfig["r2PublicBaseUrl"] == nil { fullConfig["r2PublicBaseUrl"] = "https://example.com" }
+        if fullConfig["r2.publicBaseUrl"] == nil { fullConfig["r2.publicBaseUrl"] = "https://example.com" }
 
         var cmd = try GenerateCommand.parse(args)
         cmd.overrideDependencies = GenerateCommand.Dependencies(
