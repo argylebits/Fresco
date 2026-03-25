@@ -3,18 +3,18 @@ import Foundation
 struct ReadmeUpdater: Sendable {
     private let marker = "<!-- Fresco image -->"
 
-    func insertImageURL(in readmePath: String, imageURL: String) throws {
+    func insertImageURL(in readmePath: String, imageURL: String, name: String = "Fresco") throws {
         let content = try String(contentsOfFile: readmePath, encoding: .utf8)
-        let imageLine = "![Fresco](\(imageURL))"
+        let imageLine = "![\(name)](\(imageURL))"
         var lines = content.components(separatedBy: "\n")
 
         if let markerIndex = lines.firstIndex(where: { $0.contains(marker) }) {
-            // Find existing Fresco image line after marker, skipping blank lines
+            // Find existing image line after marker, skipping blank lines
             var imageIndex: Int?
             for i in (markerIndex + 1)..<lines.count {
                 let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
                 if trimmed.isEmpty { continue }
-                if trimmed.hasPrefix("![Fresco](") { imageIndex = i }
+                if trimmed.hasPrefix("![") && trimmed.contains("](") { imageIndex = i }
                 break
             }
 
