@@ -108,7 +108,7 @@ struct InitCommand: AsyncParsableCommand {
             let galleryContent = """
                 # \(resolvedName) Gallery
 
-                <!-- Fresco appends new entries below this line on each generation -->
+                \(GalleryWriter.marker)
                 """
             try galleryContent.write(toFile: galleryPath, atomically: true, encoding: .utf8)
             print("Created gallery.md")

@@ -2,7 +2,7 @@ import Foundation
 import FrescoCore
 
 struct GalleryWriter: Sendable {
-    private let marker = "<!-- Fresco appends new entries below this line on each generation -->"
+    static let marker = "<!-- Fresco appends new entries below this line on each generation -->"
     private let tableHeader = "| Date | Image |"
     private let tableSeparator = "|------|-------|"
 
@@ -16,7 +16,7 @@ struct GalleryWriter: Sendable {
         let row = "| \(date) | ![](\(imageURL)) |"
         var lines = content.components(separatedBy: "\n")
 
-        guard let markerIndex = lines.firstIndex(where: { $0.contains(marker) }) else {
+        guard let markerIndex = lines.firstIndex(where: { $0.contains(Self.marker) }) else {
             throw .configurationError("Gallery file is missing the marker comment.")
         }
 
