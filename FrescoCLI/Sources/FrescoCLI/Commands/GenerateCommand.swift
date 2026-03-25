@@ -51,7 +51,7 @@ struct GenerateCommand: AsyncParsableCommand {
         guard let slug = deps.configReader.string(forKey: "frescoSlug") else {
             throw FrescoError.configurationError("FRESCO_SLUG is required")
         }
-        guard let r2PublicBaseUrl = deps.configReader.string(forKey: "r2PublicBaseUrl") else {
+        guard let r2PublicBaseUrl = deps.configReader.string(forKey: "r2.publicBaseUrl") else {
             throw FrescoError.configurationError("R2_PUBLIC_BASE_URL is required")
         }
 
@@ -84,16 +84,16 @@ struct GenerateCommand: AsyncParsableCommand {
         guard let geminiApiKey = config.string(forKey: "geminiApiKey") else {
             throw FrescoError.configurationError("GEMINI_API_KEY is required")
         }
-        guard let r2AccountId = config.string(forKey: "r2AccountId") else {
+        guard let r2AccountId = config.string(forKey: "r2.accountId") else {
             throw FrescoError.configurationError("R2_ACCOUNT_ID is required")
         }
-        guard let r2AccessKeyId = config.string(forKey: "r2AccessKeyId") else {
+        guard let r2AccessKeyId = config.string(forKey: "r2.accessKeyId") else {
             throw FrescoError.configurationError("R2_ACCESS_KEY_ID is required")
         }
-        guard let r2SecretAccessKey = config.string(forKey: "r2SecretAccessKey") else {
+        guard let r2SecretAccessKey = config.string(forKey: "r2.secretAccessKey") else {
             throw FrescoError.configurationError("R2_SECRET_ACCESS_KEY is required")
         }
-        guard let r2Bucket = config.string(forKey: "r2Bucket") else {
+        guard let r2Bucket = config.string(forKey: "r2.bucket") else {
             throw FrescoError.configurationError("R2_BUCKET is required")
         }
 

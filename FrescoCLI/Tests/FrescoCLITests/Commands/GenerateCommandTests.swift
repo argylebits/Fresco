@@ -83,7 +83,7 @@ struct GenerateCommandTests {
     ) throws -> GenerateCommand {
         var fullConfig = config
         if fullConfig["frescoSlug"] == nil { fullConfig["frescoSlug"] = "test-slug" }
-        if fullConfig["r2PublicBaseUrl"] == nil { fullConfig["r2PublicBaseUrl"] = "https://example.com" }
+        if fullConfig["r2.publicBaseUrl"] == nil { fullConfig["r2.publicBaseUrl"] = "https://example.com" }
 
         var cmd = try GenerateCommand.parse(args)
         cmd.overrideDependencies = GenerateCommand.Dependencies(
