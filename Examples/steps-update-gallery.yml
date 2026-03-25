@@ -6,6 +6,12 @@
 #     id: fresco
 #     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
 #     env: ...
+#
+# Your workflow must include these permissions:
+#
+#   permissions:
+#     contents: write
+#     pull-requests: write
 
       - name: Append gallery entry
         run: |

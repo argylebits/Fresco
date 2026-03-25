@@ -6,6 +6,12 @@
 #     id: fresco
 #     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
 #     env: ...
+#
+# Your workflow must include these permissions:
+#
+#   permissions:
+#     contents: write
+#     pull-requests: write
 
       - name: Update README image
         run: |
@@ -13,8 +19,10 @@
           NAME="${FRESCO_NAME:-Fresco}"
           MARKER="<!-- Fresco image -->"
           if grep -q "$MARKER" README.md; then
-            sed -i "/$MARKER/{n;s|.*|![$NAME]($URL)|;}" README.md
+            sed -i '' "/$MARKER/{n;s|.*|![$NAME]($URL)|;}" README.md
           fi
+        env:
+          FRESCO_NAME: ${{ secrets.FRESCO_NAME }}
 
       - name: Open PR with update
         run: |
