@@ -26,6 +26,7 @@ jobs:
 
       - name: Build and package binary
         run: |
+          swift build -c release --package-path FrescoCLI --arch ${{ matrix.arch }}
           BIN_PATH=$(swift build -c release --package-path FrescoCLI --arch ${{ matrix.arch }} --show-bin-path)
           mkdir -p staging
           cp "$BIN_PATH/FrescoCLI" staging/fresco
@@ -57,6 +58,7 @@ jobs:
 
       - name: Build and package binary
         run: |
+          swift build -c release --package-path FrescoCLI
           BIN_PATH=$(swift build -c release --package-path FrescoCLI --show-bin-path)
           mkdir -p staging
           cp "$BIN_PATH/FrescoCLI" staging/fresco
