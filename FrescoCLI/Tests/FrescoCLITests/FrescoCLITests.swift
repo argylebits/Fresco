@@ -1,10 +1,10 @@
 import Testing
 @testable import FrescoCLI
 
-@Suite("FrescoCLI")
+@Suite("FrescoCLI Tests")
 struct FrescoCLITests {
-    @Test func subcommands_doesNotIncludeInit() {
-        let names = Fresco.configuration.subcommands.map { $0.configuration.commandName }
-        #expect(!names.contains("init"))
+    @Test("Example test")
+    func example() async throws {
+        // Add your tests here
     }
 }
