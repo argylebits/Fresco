@@ -1,5 +1,5 @@
 # Generate a Fresco image when a version tag is pushed.
-# Workflow: push a tag like v1.0.0-rc → image generates → merge the image PR → cut the release from main.
+# Combine with step snippets to open a PR, update README, etc.
 
 name: Fresco (Tag)
 

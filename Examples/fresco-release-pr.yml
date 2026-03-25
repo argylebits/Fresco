@@ -1,5 +1,5 @@
 # Generate a Fresco image when a PR is labeled "release".
-# Workflow: open a release PR → add the "release" label → image generates and commits to the PR branch.
+# Combine with step snippets to open a PR, update README, etc.
 
 name: Fresco (Release PR)
 

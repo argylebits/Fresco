@@ -1,5 +1,5 @@
 # Generate a Fresco image when a pre-release is published.
-# Workflow: publish a pre-release → image generates → merge the image PR → promote to full release.
+# Combine with step snippets to open a PR, update README, etc.
 
 name: Fresco (Pre-release)
 

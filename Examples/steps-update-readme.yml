@@ -19,7 +19,8 @@
           NAME="${FRESCO_NAME:-Fresco}"
           MARKER="<!-- Fresco image -->"
           if grep -q "$MARKER" README.md; then
-            sed -i '' "/$MARKER/{n;s|.*|![$NAME]($URL)|;}" README.md
+            sed -i.bak "/$MARKER/{n;s|.*|![$NAME]($URL)|;}" README.md
+            rm -f README.md.bak
           fi
         env:
           FRESCO_NAME: ${{ secrets.FRESCO_NAME }}
@@ -41,7 +42,7 @@
           gh pr create \
             --title "fresco: ${DATE}" \
             --body "Automated image update." \
-            --base main \
+            --base "${{ github.event.repository.default_branch }}" \
             --head "$BRANCH"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
