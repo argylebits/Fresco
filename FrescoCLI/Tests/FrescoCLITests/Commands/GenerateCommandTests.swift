@@ -122,14 +122,14 @@ struct GenerateCommandTests {
         #expect(cmd.r2PublicBaseUrl == "https://cdn.example.com")
     }
 
-    @Test func command_parsesDryRunFlag() throws {
-        let cmd = try GenerateCommand.parse(["--dry-run", "--prompt", "p"])
-        #expect(cmd.dryRun == true)
+    @Test func command_parsesPreviewFlag() throws {
+        let cmd = try GenerateCommand.parse(["--preview", "--prompt", "p"])
+        #expect(cmd.preview == true)
     }
 
-    @Test func command_dryRunDefaultsToFalse() throws {
+    @Test func command_previewDefaultsToFalse() throws {
         let cmd = try GenerateCommand.parse(["--prompt", "p"])
-        #expect(cmd.dryRun == false)
+        #expect(cmd.preview == false)
     }
 
     // MARK: - Flag precedence
@@ -154,13 +154,13 @@ struct GenerateCommandTests {
         try await cmd.run()
     }
 
-    // MARK: - Dry run
+    // MARK: - Preview
 
-    @Test func run_dryRunGeneratesButDoesNotUpload() async throws {
+    @Test func run_previewGeneratesButDoesNotUpload() async throws {
         let geminiCalled = Mutex(false)
         let r2Called = Mutex(false)
         var cmd = try makeCommand(
-            args: ["--dry-run", "--prompt", "p"],
+            args: ["--preview", "--prompt", "p"],
             config: [:],
             onGenerateImage: { _ in geminiCalled.withLock { $0 = true } },
             onUpload: { _, _ in r2Called.withLock { $0 = true } }
@@ -170,9 +170,9 @@ struct GenerateCommandTests {
         #expect(r2Called.withLock { $0 } == false)
     }
 
-    @Test func run_dryRunDoesNotRequireR2Config() async throws {
+    @Test func run_previewDoesNotRequireR2Config() async throws {
         var cmd = try makeCommand(
-            args: ["--dry-run", "--prompt", "p"],
+            args: ["--preview", "--prompt", "p"],
             config: ["frescoSlug": "test-slug"],
             omitR2PublicBaseUrl: true
         )
