@@ -53,9 +53,31 @@ fresco generate
 `fresco init` will:
 - Walk you through configuring your prompt and credentials
 - Create `.env` with your configuration (gitignored)
-- Write `.github/workflows/fresco.yml` for daily automation
+- Write `.github/workflows/fresco.yml` for scheduled automation
 - Add the image URL to your README
-- Generate your first image immediately
+- Create `gallery.md` for image history
+
+---
+
+## GitHub Actions Secrets
+
+The GitHub Actions workflow reads credentials from repository secrets. Add these in your repo under **Settings > Secrets and variables > Actions**:
+
+| Secret | Description |
+|---|---|
+| `FRESCO_PROMPT` | Image generation prompt |
+| `FRESCO_SLUG` | Project slug (used in R2 paths) |
+| `FRESCO_NAME` | Project display name |
+| `FRESCO_SCHEDULE` | Schedule: daily, weekly, monthly, quarterly, annual |
+| `FRESCO_SCHEDULE_HOUR` | UTC hour for generation (0-23) |
+| `GEMINI_API_KEY` | Google Gemini API key |
+| `R2_ACCOUNT_ID` | Cloudflare account ID |
+| `R2_ACCESS_KEY_ID` | R2 access key ID |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key |
+| `R2_BUCKET` | R2 bucket name |
+| `R2_PUBLIC_BASE_URL` | Public base URL for R2 images |
+
+Use the same values from your `.env` file, or set them manually.
 
 ---
 

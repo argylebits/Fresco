@@ -1,0 +1,152 @@
+import ArgumentParser
+import Foundation
+
+struct InitCommand: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "init",
+        abstract: "Initialize a new Fresco project"
+    )
+
+    @Option(name: .long, help: "Project display name")
+    var name: String?
+
+    @Option(name: .long, help: "Project slug (used in R2 paths and URLs)")
+    var slug: String?
+
+    @Option(name: .long, help: "Image generation prompt")
+    var prompt: String?
+
+    @Option(name: .long, help: "Generation schedule: daily, weekly, monthly, quarterly, annual")
+    var schedule: String?
+
+    @Option(name: .long, help: "UTC hour for generation (0-23)")
+    var scheduleHour: Int?
+
+    @Option(name: .long, help: "Gemini API key")
+    var geminiKey: String?
+
+    @Option(name: .long, help: "Cloudflare R2 account ID")
+    var r2AccountId: String?
+
+    @Option(name: .long, help: "R2 access key ID")
+    var r2AccessKeyId: String?
+
+    @Option(name: .long, help: "R2 secret access key")
+    var r2SecretAccessKey: String?
+
+    @Option(name: .long, help: "R2 bucket name")
+    var r2Bucket: String?
+
+    @Option(name: .long, help: "R2 public base URL")
+    var r2PublicBaseUrl: String?
+
+    @Flag(name: .long, help: "Use default/placeholder values for anything not provided")
+    var defaults: Bool = false
+
+    @Flag(name: .long, help: "Overwrite existing configuration")
+    var force: Bool = false
+
+    mutating func run() async throws {
+        let envPath = ".env"
+        if FileManager.default.fileExists(atPath: envPath) && !force {
+            print(".env already exists. Use --force to overwrite.")
+            throw ExitCode.failure
+        }
+
+        let resolvedName = name ?? resolve("Project name", default: "My Project")
+        let resolvedSlug = slug ?? resolve("Project slug", default: "my-project")
+        let resolvedPrompt = prompt ?? resolve("Image generation prompt", default: "A fresco like the ones you'd see in central Texas, tagged with graffiti art that says Fresco. 4:1.")
+        let resolvedSchedule = schedule ?? resolve("Schedule (daily, weekly, monthly, quarterly, annual)", default: "daily")
+        let resolvedScheduleHour = scheduleHour ?? resolveInt("Schedule hour (0-23 UTC)", default: 3)
+        let resolvedGeminiKey = geminiKey ?? resolve("Gemini API key", default: "your-gemini-api-key")
+        let resolvedR2AccountId = r2AccountId ?? resolve("R2 account ID", default: "your-cloudflare-account-id")
+        let resolvedR2AccessKeyId = r2AccessKeyId ?? resolve("R2 access key ID", default: "your-r2-access-key-id")
+        let resolvedR2SecretAccessKey = r2SecretAccessKey ?? resolve("R2 secret access key", default: "your-r2-secret-access-key")
+        let resolvedR2Bucket = r2Bucket ?? resolve("R2 bucket name", default: "fresco-images")
+        let resolvedR2PublicBaseUrl = r2PublicBaseUrl ?? resolve("R2 public base URL", default: "https://pub-xxxx.r2.dev")
+
+        // Validate before writing any files
+        let workflowWriter = WorkflowWriter()
+        _ = try workflowWriter.cronExpression(schedule: resolvedSchedule, hour: resolvedScheduleHour)
+
+        let envContent = """
+            FRESCO_PROMPT="\(resolvedPrompt.escapedForEnv)"
+            FRESCO_SLUG="\(resolvedSlug.escapedForEnv)"
+            FRESCO_NAME="\(resolvedName.escapedForEnv)"
+            FRESCO_SCHEDULE="\(resolvedSchedule.escapedForEnv)"
+            FRESCO_SCHEDULE_HOUR="\(resolvedScheduleHour)"
+            GEMINI_API_KEY="\(resolvedGeminiKey.escapedForEnv)"
+            R2_ACCOUNT_ID="\(resolvedR2AccountId.escapedForEnv)"
+            R2_ACCESS_KEY_ID="\(resolvedR2AccessKeyId.escapedForEnv)"
+            R2_SECRET_ACCESS_KEY="\(resolvedR2SecretAccessKey.escapedForEnv)"
+            R2_BUCKET="\(resolvedR2Bucket.escapedForEnv)"
+            R2_PUBLIC_BASE_URL="\(resolvedR2PublicBaseUrl.escapedForEnv)"
+            """
+
+        try envContent.write(toFile: envPath, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: envPath)
+        print("Wrote .env")
+
+        let workflowPath = ".github/workflows/fresco.yml"
+        if FileManager.default.fileExists(atPath: workflowPath) && !force {
+            print("\(workflowPath) already exists. Skipping. Use --force to overwrite.")
+        } else {
+            try workflowWriter.writeWorkflow(to: workflowPath, schedule: resolvedSchedule, scheduleHour: resolvedScheduleHour)
+            print("Wrote \(workflowPath)")
+        }
+
+        let readmePath = "README.md"
+        if FileManager.default.fileExists(atPath: readmePath) {
+            let placeholderURL = "\(resolvedR2PublicBaseUrl)/\(resolvedSlug)/today.jpg"
+            let readmeUpdater = ReadmeUpdater()
+            try readmeUpdater.insertImageURL(in: readmePath, imageURL: placeholderURL)
+            print("Updated README.md with Fresco image placeholder")
+        }
+
+        let galleryPath = "gallery.md"
+        if !FileManager.default.fileExists(atPath: galleryPath) {
+            let galleryContent = """
+                # \(resolvedName) Gallery
+
+                \(GalleryWriter.marker)
+                """
+            try galleryContent.write(toFile: galleryPath, atomically: true, encoding: .utf8)
+            print("Created gallery.md")
+        }
+
+        print("\nFresco initialized!")
+        print("Add your secrets as GitHub Actions repository secrets for scheduled runs.")
+        print("See the project README for the full list of required secrets.")
+        print("Run `fresco generate` to create your first image.")
+    }
+
+    private func resolveInt(_ label: String, default defaultValue: Int) -> Int {
+        if defaults {
+            return defaultValue
+        }
+        print("\(label) [\(defaultValue)]: ", terminator: "")
+        guard let input = readLine(), !input.isEmpty else {
+            return defaultValue
+        }
+        return Int(input) ?? defaultValue
+    }
+
+    private func resolve(_ label: String, default defaultValue: String) -> String {
+        if defaults {
+            return defaultValue
+        }
+        print("\(label) [\(defaultValue)]: ", terminator: "")
+        guard let input = readLine(), !input.isEmpty else {
+            return defaultValue
+        }
+        return input
+    }
+}
+
+private extension String {
+    var escapedForEnv: String {
+        replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+    }
+}

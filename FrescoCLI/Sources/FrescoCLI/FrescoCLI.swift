@@ -1,12 +1,10 @@
 import ArgumentParser
 
 @main
-struct FrescoCLI: ParsableCommand {
+struct Fresco: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "A Swift command-line tool."
+        commandName: "fresco",
+        abstract: "AI image generation CLI",
+        subcommands: [InitCommand.self]
     )
-
-    func run() throws {
-        print("Hello from FrescoCLI!")
-    }
 }
