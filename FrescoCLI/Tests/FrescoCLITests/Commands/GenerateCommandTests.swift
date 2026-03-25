@@ -61,18 +61,6 @@ struct GenerateCommandTests {
         }
     }
 
-    @Test func run_appendsGalleryEntry() async throws {
-        let receivedURL = Mutex<String?>(nil)
-        var cmd = try makeCommand(
-            args: ["--prompt", "test"],
-            config: [:],
-            onAppendEntry: { _, _, url in receivedURL.withLock { $0 = url } }
-        )
-        try await cmd.run()
-        let url = receivedURL.withLock { $0 }
-        #expect(url?.contains("https://example.com/test-slug/") == true)
-    }
-
     @Test func configKeys_resolveToExpectedEnvVarNames() {
         let config = ConfigReader(provider: EnvironmentVariablesProvider(
             environmentVariables: [
@@ -102,8 +90,7 @@ struct GenerateCommandTests {
     private func makeCommand(
         args: [String],
         config: [AbsoluteConfigKey: ConfigValue],
-        onGenerateImage: (@Sendable (String) -> Void)? = nil,
-        onAppendEntry: (@Sendable (String, String, String) -> Void)? = nil
+        onGenerateImage: (@Sendable (String) -> Void)? = nil
     ) throws -> GenerateCommand {
         var fullConfig = config
         if fullConfig["frescoSlug"] == nil { fullConfig["frescoSlug"] = "test-slug" }
@@ -113,8 +100,7 @@ struct GenerateCommandTests {
         cmd.overrideDependencies = GenerateCommand.Dependencies(
             configReader: ConfigReader(provider: InMemoryProvider(values: fullConfig)),
             gemini: MockCLIGeminiClient(result: Data([0xFF, 0xD8]), onGenerateImage: onGenerateImage),
-            r2: MockCLIR2Client(),
-            galleryWriter: MockCLIGalleryWriter(onAppendEntry: onAppendEntry)
+            r2: MockCLIR2Client()
         )
         return cmd
     }
