@@ -65,6 +65,11 @@ struct GenerateCommand: AsyncParsableCommand {
             imageURL: result.publicURL.absoluteString
         )
 
+        if FileManager.default.fileExists(atPath: "README.md") {
+            let name = deps.configReader.string(forKey: "frescoName") ?? "Fresco"
+            try ReadmeUpdater().insertImageURL(in: "README.md", imageURL: result.publicURL.absoluteString, name: name)
+        }
+
         print(result.publicURL.absoluteString)
     }
 

@@ -16,20 +16,11 @@ public struct GenerateService: Sendable {
 
         let archiveDateString = ISO8601DateFormatter.archiveKeyString(from: date)
         let archiveKey = "\(slug)/\(archiveDateString).jpg"
-        let todayKey = "\(slug)/today.jpg"
-
         try await r2.upload(
             data: imageData,
             key: archiveKey,
             contentType: "image/jpeg",
             cacheControl: "public, max-age=31536000"
-        )
-
-        try await r2.upload(
-            data: imageData,
-            key: todayKey,
-            contentType: "image/jpeg",
-            cacheControl: "public, max-age=3600"
         )
 
         guard let baseURL = URL(string: publicBaseURL) else {
