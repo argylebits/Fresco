@@ -71,7 +71,11 @@ struct GenerateCommand: AsyncParsableCommand {
     private func makeDependencies() async throws -> Dependencies {
         let envProvider: EnvironmentVariablesProvider
         if FileManager.default.fileExists(atPath: ".env") {
-            envProvider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+            do {
+                envProvider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+            } catch {
+                throw FrescoError.configurationError("Failed to load .env: \(error.localizedDescription)")
+            }
         } else {
             envProvider = EnvironmentVariablesProvider()
         }
