@@ -2,8 +2,6 @@
 
 # Fresco
 
-> **Note:** Fresco is under active development. The features described below reflect the intended design — see the [Vision & Roadmap](FrescoDocs/VISION.md) for current status.
-
 **Scheduled AI-generated images for any project.**
 
 Fresco is a CLI tool that generates images on a schedule — daily, weekly, monthly, quarterly, or annual — using the Google Gemini Imagen API and publishes them to Cloudflare R2. Drop the stable URL into any README, website, or app — it updates itself.
@@ -32,9 +30,8 @@ That image changes every day. You never touch it again.
 
 ## Install
 
-<!-- TODO: Update once Homebrew tap is published -->
 ```bash
-brew install argylebits/fresco
+brew install argylebits/tap/fresco
 ```
 
 ---
@@ -59,9 +56,11 @@ fresco generate
 
 ---
 
-## GitHub Actions Secrets
+## Configuration
 
-The GitHub Actions workflow reads credentials from repository secrets. Add these in your repo under **Settings > Secrets and variables > Actions**:
+All configuration is read from environment variables. Run `fresco init` to generate a `.env` file, or see [`fresco.template.env`](fresco.template.env) for the full variable list.
+
+For GitHub Actions, add the same values as repository secrets under **Settings > Secrets and variables > Actions**:
 
 | Secret | Description |
 |---|---|
@@ -86,6 +85,7 @@ Use the same values from your `.env` file, or set them manually.
 **Run it manually from the command line:**
 
 ```bash
+fresco --version
 fresco generate
 fresco generate --prompt "A sunset over the Hill Country"
 fresco generate --append "Celebrating release v2.1.0"
@@ -115,36 +115,6 @@ Browse the [Gallery](gallery.md) for the full image history.
 
 ---
 
-## Documentation
-
-| Document | |
-|---|---|
-| [Vision & Roadmap](FrescoDocs/VISION.md) | What Fresco is, where it's going, the three phases |
-| [CLI Reference](FrescoDocs/CLI.md) | Every command, flag, and environment variable |
-| [Prompt Configuration](FrescoDocs/PROMPT_CONFIG.md) | How to write great prompts |
-| [Architecture](FrescoDocs/ARCHITECTURE.md) | How it all fits together, per phase |
-| [Development Guide](FrescoDocs/AGENTS/DEVELOPMENT.md) | Local setup, testing, contributing |
-| [Deployment Guide](FrescoDocs/DEPLOYMENT.md) | Self-hosting the Fresco server (Phase 2) |
-
----
-
-## Phases
-
-Fresco is being built in three phases:
-
-**Phase 1 — CLI** ← you are here
-Local tool. GitHub Actions for scheduling. Gemini + R2 direct.
-
-**Phase 2 — Self-hosted server**
-Persistent scheduler for non-GitHub projects. Run your own Fresco server.
-
-**Phase 3 — Hosted service**
-Sign up and use Fresco without running any infrastructure.
-
-The CLI works the same way in all three phases. Phase 2 and 3 just change what's behind it.
-
----
-
 ## License
 
-MIT
+[Apache License 2.0](LICENSE)
