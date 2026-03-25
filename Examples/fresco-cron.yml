@@ -1,0 +1,35 @@
+# Generate a Fresco image on a schedule.
+# Adjust the cron expression to your preferred frequency.
+#
+# Common schedules:
+#   daily at 3am UTC:     '0 3 * * *'
+#   weekly on Monday:     '0 3 * * 1'
+#   monthly on the 1st:   '0 3 1 * *'
+#   quarterly:            '0 3 1 1,4,7,10 *'
+
+name: Fresco (Scheduled)
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  generate:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Fresco
+        run: brew install argylebits/fresco
+
+      - name: Generate image
+        run: fresco generate
+        env:
+          FRESCO_PROMPT:         ${{ secrets.FRESCO_PROMPT }}
+          FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
+          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
+          R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:      ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY:  ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET:             ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_BASE_URL:    ${{ secrets.R2_PUBLIC_BASE_URL }}
