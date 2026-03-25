@@ -1,0 +1,43 @@
+# Upload the generated image to a stable URL like:
+#   https://your-r2-domain.dev/your-slug/latest.jpg
+#
+# This lets you reference a fixed URL in your README that always shows
+# the most recent image. Add these steps after the "Generate image" step.
+#
+# The generate step must capture the URL as an output:
+#
+#   - name: Generate image
+#     id: fresco
+#     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
+#     env: ...
+#
+# GitHub camo cache:
+#   GitHub proxies external images through camo.githubusercontent.com and
+#   caches them aggressively. The purge step below clears the cache so
+#   GitHub picks up the new image.
+#
+#   To set CAMO_IMAGE_URL:
+#     1. Push your README with the latest.jpg image reference
+#     2. Open your README on GitHub
+#     3. Right-click the image → "Copy image address"
+#     4. Save that URL as a repository variable named CAMO_IMAGE_URL
+#
+#   See: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-anonymized-urls#removing-an-image-from-camos-cache
+
+      - name: Copy to latest.jpg
+        run: |
+          curl -sfo /tmp/latest.jpg "${{ steps.fresco.outputs.url }}"
+          aws s3 cp /tmp/latest.jpg \
+            "s3://${R2_BUCKET}/${FRESCO_SLUG}/latest.jpg" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --content-type "image/jpeg"
+        env:
+          R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET:             ${{ secrets.R2_BUCKET }}
+          FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
+      - name: Purge GitHub camo cache
+        if: vars.CAMO_IMAGE_URL != ''
+        run: curl -sX PURGE "${{ vars.CAMO_IMAGE_URL }}"

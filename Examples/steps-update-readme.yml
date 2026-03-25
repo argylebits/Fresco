@@ -1,0 +1,48 @@
+# Add these steps after the "Generate image" step in any Fresco workflow.
+# Requires a <!-- Fresco image --> marker in your README.md.
+# The generate step must capture the URL as an output:
+#
+#   - name: Generate image
+#     id: fresco
+#     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
+#     env: ...
+#
+# Your workflow must include these permissions:
+#
+#   permissions:
+#     contents: write
+#     pull-requests: write
+
+      - name: Update README image
+        run: |
+          URL="${{ steps.fresco.outputs.url }}"
+          NAME="${FRESCO_NAME:-Fresco}"
+          MARKER="<!-- Fresco image -->"
+          if grep -q "$MARKER" README.md; then
+            sed -i.bak "/$MARKER/{n;s|.*|![$NAME]($URL)|;}" README.md
+            rm -f README.md.bak
+          fi
+        env:
+          FRESCO_NAME: ${{ secrets.FRESCO_NAME }}
+
+      - name: Open PR with update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if git diff --staged --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          DATE="$(date +%Y-%m-%d)"
+          BRANCH="fresco/${DATE}-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+          git commit -m "fresco: ${DATE}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "fresco: ${DATE}" \
+            --body "Automated image update." \
+            --base "${{ github.event.repository.default_branch }}" \
+            --head "$BRANCH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

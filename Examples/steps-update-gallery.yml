@@ -1,0 +1,42 @@
+# Add these steps after the "Generate image" step in any Fresco workflow.
+# Requires a gallery.md file (see fresco.template.gallery.md).
+# The generate step must capture the URL as an output:
+#
+#   - name: Generate image
+#     id: fresco
+#     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
+#     env: ...
+#
+# Your workflow must include these permissions:
+#
+#   permissions:
+#     contents: write
+#     pull-requests: write
+
+      - name: Append gallery entry
+        run: |
+          URL="${{ steps.fresco.outputs.url }}"
+          DATE="$(date +%Y-%m-%d)"
+          echo "| ${DATE} | ![]($URL) |" >> gallery.md
+
+      - name: Open PR with update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gallery.md
+          if git diff --staged --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          DATE="$(date +%Y-%m-%d)"
+          BRANCH="fresco/gallery-${DATE}-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+          git commit -m "fresco: gallery ${DATE}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "fresco: gallery ${DATE}" \
+            --body "Automated gallery update." \
+            --base "${{ github.event.repository.default_branch }}" \
+            --head "$BRANCH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
