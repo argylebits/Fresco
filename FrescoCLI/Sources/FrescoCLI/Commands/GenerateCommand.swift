@@ -30,7 +30,12 @@ struct GenerateCommand: AsyncParsableCommand {
     }
 
     mutating func run() async throws {
-        let deps = try overrideDependencies ?? makeDependencies()
+        let deps: Dependencies
+        if let overrideDependencies {
+            deps = overrideDependencies
+        } else {
+            deps = try await makeDependencies()
+        }
 
         let configuredPrompt = deps.configReader.string(forKey: "frescoPrompt")
 
@@ -63,8 +68,18 @@ struct GenerateCommand: AsyncParsableCommand {
         print(result.publicURL.absoluteString)
     }
 
-    private func makeDependencies() throws -> Dependencies {
-        let config = ConfigReader(provider: EnvironmentVariablesProvider())
+    private func makeDependencies() async throws -> Dependencies {
+        let envProvider: EnvironmentVariablesProvider
+        if FileManager.default.fileExists(atPath: ".env") {
+            do {
+                envProvider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+            } catch {
+                throw FrescoError.configurationError("Failed to load .env: \(error.localizedDescription)")
+            }
+        } else {
+            envProvider = EnvironmentVariablesProvider()
+        }
+        let config = ConfigReader(provider: envProvider)
 
         guard let geminiApiKey = config.string(forKey: "geminiApiKey") else {
             throw FrescoError.configurationError("GEMINI_API_KEY is required")
