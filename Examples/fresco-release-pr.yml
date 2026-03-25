@@ -11,8 +11,6 @@ jobs:
   generate:
     if: github.event.label.name == 'release'
     runs-on: macos-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
