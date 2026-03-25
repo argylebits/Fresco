@@ -33,21 +33,32 @@ Copy one of the example workflows into `.github/workflows/`:
 - `fresco-cron.yml` — generate on a schedule
 - `fresco-dispatch.yml` — generate on demand from the GitHub UI
 - `fresco-release.yml` — generate when a release is published
+- `fresco-pre-release.yml` — generate when a pre-release is published
+- `fresco-release-pr.yml` — generate when a PR is labeled "release"
+- `fresco-tag.yml` — generate when a version tag is pushed
 
-## README and gallery updates
+## Optional step snippets
 
-Fresco generates an image, uploads it, and prints the URL. What you do with that URL is up to you.
+Add these steps after the generate step in any workflow above.
 
-The step snippets show one approach using an HTML comment as a marker. For example, add this to your README where you want the image:
+- `steps-update-readme.yml` — replaces the image line after a marker in your README
+- `steps-update-gallery.yml` — appends a row to a markdown table
+- `steps-latest-jpg.yml` — copies the image to a stable `latest.jpg` URL on R2 and purges the GitHub camo cache
+
+## README image marker
+
+The readme snippet uses an HTML comment as a marker. For example:
 
 ```markdown
 <!-- Fresco image -->
-![Fresco](https://your-initial-image-url)
+![Fresco](https://your-r2-domain.dev/your-slug/latest.jpg)
 ```
 
 The marker can be whatever you want — just keep it in sync with the `sed` pattern in your workflow.
 
-- `steps-update-readme.yml` — replaces the image line after the marker
-- `steps-update-gallery.yml` — appends a row to a markdown table
+## Gallery
 
-See `fresco.template.gallery.md` for a starter gallery file.
+To maintain a gallery of generated images:
+
+1. Copy `fresco.template.gallery.md` to `gallery.md` in your repo
+2. Add the steps from `steps-update-gallery.yml` to your workflow

@@ -1,14 +1,12 @@
-# Generate a Fresco image on demand from the GitHub Actions UI.
-# Optionally override the prompt at trigger time.
+# Generate a Fresco image when a version tag is pushed.
+# Workflow: push a tag like v1.0.0-rc → image generates → merge the image PR → cut the release from main.
 
-name: Fresco (Manual)
+name: Fresco (Tag)
 
 on:
-  workflow_dispatch:
-    inputs:
-      prompt:
-        description: 'Override the default prompt'
-        required: false
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   generate:
@@ -20,12 +18,7 @@ jobs:
         run: brew install argylebits/tap/fresco
 
       - name: Generate image
-        run: |
-          if [ -n "${{ github.event.inputs.prompt }}" ]; then
-            fresco generate --prompt "${{ github.event.inputs.prompt }}"
-          else
-            fresco generate
-          fi
+        run: fresco generate
         env:
           FRESCO_PROMPT:         ${{ secrets.FRESCO_PROMPT }}
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}

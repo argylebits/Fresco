@@ -1,31 +1,28 @@
-# Generate a Fresco image on demand from the GitHub Actions UI.
-# Optionally override the prompt at trigger time.
+# Generate a Fresco image when a PR is labeled "release".
+# Workflow: open a release PR → add the "release" label → image generates and commits to the PR branch.
 
-name: Fresco (Manual)
+name: Fresco (Release PR)
 
 on:
-  workflow_dispatch:
-    inputs:
-      prompt:
-        description: 'Override the default prompt'
-        required: false
+  pull_request:
+    types: [labeled]
 
 jobs:
   generate:
+    if: github.event.label.name == 'release'
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Install Fresco
         run: brew install argylebits/tap/fresco
 
       - name: Generate image
-        run: |
-          if [ -n "${{ github.event.inputs.prompt }}" ]; then
-            fresco generate --prompt "${{ github.event.inputs.prompt }}"
-          else
-            fresco generate
-          fi
+        run: fresco generate
         env:
           FRESCO_PROMPT:         ${{ secrets.FRESCO_PROMPT }}
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
