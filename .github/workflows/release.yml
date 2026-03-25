@@ -22,10 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build release binary
-        run: swift build -c release --package-path FrescoCLI --arch ${{ matrix.arch }}
-
-      - name: Package binary
+      - name: Build and package binary
         run: |
           BIN_PATH=$(swift build -c release --package-path FrescoCLI --arch ${{ matrix.arch }} --show-bin-path)
           mkdir -p staging
@@ -53,10 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build release binary
-        run: swift build -c release --package-path FrescoCLI
-
-      - name: Package binary
+      - name: Build and package binary
         run: |
           BIN_PATH=$(swift build -c release --package-path FrescoCLI --show-bin-path)
           mkdir -p staging
@@ -139,9 +133,9 @@ jobs:
 
           EXISTING=$(gh api repos/argylebits/homebrew-tap/contents/Formula/fresco.rb --jq '.sha')
 
-          echo "$FORMULA" | gh api -X PUT repos/argylebits/homebrew-tap/contents/Formula/fresco.rb \
+          gh api -X PUT repos/argylebits/homebrew-tap/contents/Formula/fresco.rb \
             -f message="Update fresco formula to ${VERSION}" \
-            -f content="$(echo "$FORMULA" | base64)" \
+            -f content="$(printf '%s' "$FORMULA" | base64 -w0)" \
             -f sha="$EXISTING"
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
