@@ -16,3 +16,6 @@ DerivedData/
 # Environment
 .env
 .env.local
+
+# Preview output
+_preview/

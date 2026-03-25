@@ -85,22 +85,120 @@ struct GenerateCommandTests {
         #expect(config.string(forKey: "r2.publicBaseUrl") == "https://example.com")
     }
 
+    // MARK: - Flag parsing
+
+    @Test func command_parsesSlugFlag() throws {
+        let cmd = try GenerateCommand.parse(["--slug", "my-slug", "--prompt", "p"])
+        #expect(cmd.slug == "my-slug")
+    }
+
+    @Test func command_parsesGeminiApiKeyFlag() throws {
+        let cmd = try GenerateCommand.parse(["--gemini-api-key", "key123", "--prompt", "p"])
+        #expect(cmd.geminiApiKey == "key123")
+    }
+
+    @Test func command_parsesR2AccountIdFlag() throws {
+        let cmd = try GenerateCommand.parse(["--r2-account-id", "acct", "--prompt", "p"])
+        #expect(cmd.r2AccountId == "acct")
+    }
+
+    @Test func command_parsesR2AccessKeyIdFlag() throws {
+        let cmd = try GenerateCommand.parse(["--r2-access-key-id", "akid", "--prompt", "p"])
+        #expect(cmd.r2AccessKeyId == "akid")
+    }
+
+    @Test func command_parsesR2SecretAccessKeyFlag() throws {
+        let cmd = try GenerateCommand.parse(["--r2-secret-access-key", "sak", "--prompt", "p"])
+        #expect(cmd.r2SecretAccessKey == "sak")
+    }
+
+    @Test func command_parsesR2BucketFlag() throws {
+        let cmd = try GenerateCommand.parse(["--r2-bucket", "mybucket", "--prompt", "p"])
+        #expect(cmd.r2Bucket == "mybucket")
+    }
+
+    @Test func command_parsesR2PublicBaseUrlFlag() throws {
+        let cmd = try GenerateCommand.parse(["--r2-public-base-url", "https://cdn.example.com", "--prompt", "p"])
+        #expect(cmd.r2PublicBaseUrl == "https://cdn.example.com")
+    }
+
+    @Test func command_parsesPreviewFlag() throws {
+        let cmd = try GenerateCommand.parse(["--preview", "--prompt", "p"])
+        #expect(cmd.preview == true)
+    }
+
+    @Test func command_previewDefaultsToFalse() throws {
+        let cmd = try GenerateCommand.parse(["--prompt", "p"])
+        #expect(cmd.preview == false)
+    }
+
+    // MARK: - Flag precedence
+
+    @Test func run_slugFlagOverridesConfig() async throws {
+        let receivedKey = Mutex<String?>(nil)
+        var cmd = try makeCommand(
+            args: ["--slug", "flag-slug", "--prompt", "p"],
+            config: ["frescoSlug": "config-slug"],
+            onUpload: { _, key in receivedKey.withLock { $0 = key } }
+        )
+        try await cmd.run()
+        let key = receivedKey.withLock { $0 }
+        #expect(key?.hasPrefix("flag-slug/") == true)
+    }
+
+    @Test func run_r2PublicBaseUrlFlagOverridesConfig() async throws {
+        var cmd = try makeCommand(
+            args: ["--r2-public-base-url", "https://cdn.flag.com", "--prompt", "p"],
+            config: ["r2.publicBaseUrl": "https://cdn.config.com"]
+        )
+        try await cmd.run()
+    }
+
+    // MARK: - Preview
+
+    @Test func run_previewGeneratesButDoesNotUpload() async throws {
+        let geminiCalled = Mutex(false)
+        let r2Called = Mutex(false)
+        var cmd = try makeCommand(
+            args: ["--preview", "--prompt", "p"],
+            config: [:],
+            onGenerateImage: { _ in geminiCalled.withLock { $0 = true } },
+            onUpload: { _, _ in r2Called.withLock { $0 = true } }
+        )
+        try await cmd.run()
+        #expect(geminiCalled.withLock { $0 } == true)
+        #expect(r2Called.withLock { $0 } == false)
+    }
+
+    @Test func run_previewDoesNotRequireR2Config() async throws {
+        var cmd = try makeCommand(
+            args: ["--preview", "--prompt", "p"],
+            config: ["frescoSlug": "test-slug"],
+            omitR2PublicBaseUrl: true
+        )
+        try await cmd.run()
+    }
+
     // MARK: - Helpers
 
     private func makeCommand(
         args: [String],
         config: [AbsoluteConfigKey: ConfigValue],
-        onGenerateImage: (@Sendable (String) -> Void)? = nil
+        omitR2PublicBaseUrl: Bool = false,
+        onGenerateImage: (@Sendable (String) -> Void)? = nil,
+        onUpload: (@Sendable (Data, String) -> Void)? = nil
     ) throws -> GenerateCommand {
         var fullConfig = config
         if fullConfig["frescoSlug"] == nil { fullConfig["frescoSlug"] = "test-slug" }
-        if fullConfig["r2.publicBaseUrl"] == nil { fullConfig["r2.publicBaseUrl"] = "https://example.com" }
+        if !omitR2PublicBaseUrl && fullConfig["r2.publicBaseUrl"] == nil {
+            fullConfig["r2.publicBaseUrl"] = "https://example.com"
+        }
 
         var cmd = try GenerateCommand.parse(args)
         cmd.overrideDependencies = GenerateCommand.Dependencies(
             configReader: ConfigReader(provider: InMemoryProvider(values: fullConfig)),
             gemini: MockCLIGeminiClient(result: Data([0xFF, 0xD8]), onGenerateImage: onGenerateImage),
-            r2: MockCLIR2Client()
+            r2: MockCLIR2Client(onUpload: onUpload)
         )
         return cmd
     }
