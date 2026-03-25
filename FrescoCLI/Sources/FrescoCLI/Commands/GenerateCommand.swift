@@ -15,11 +15,14 @@ struct GenerateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Append text to the configured prompt")
     var append: String?
 
-    // Test injection points — excluded from ArgumentParser decoding
-    var overrideConfigReader: ConfigReader?
-    var overrideGemini: (any GeminiClientProtocol)?
-    var overrideR2: (any R2ClientProtocol)?
-    var overrideGalleryWriter: (any GalleryWriterProtocol)?
+    struct Dependencies: Sendable {
+        let configReader: ConfigReader
+        let gemini: any GeminiClientProtocol
+        let r2: any R2ClientProtocol
+        let galleryWriter: any GalleryWriterProtocol
+    }
+
+    var overrideDependencies: Dependencies?
 
     enum CodingKeys: String, CodingKey {
         case prompt
@@ -27,9 +30,9 @@ struct GenerateCommand: AsyncParsableCommand {
     }
 
     mutating func run() async throws {
-        let config = overrideConfigReader ?? ConfigReader(provider: EnvironmentVariablesProvider())
+        let deps = try overrideDependencies ?? makeDependencies()
 
-        let configuredPrompt = config.string(forKey: "frescoPrompt")
+        let configuredPrompt = deps.configReader.string(forKey: "frescoPrompt")
 
         let effectivePrompt: String
         if let prompt {
@@ -40,57 +43,55 @@ struct GenerateCommand: AsyncParsableCommand {
             throw FrescoError.configurationError("FRESCO_PROMPT is required (or use --prompt)")
         }
 
-        guard let slug = config.string(forKey: "frescoSlug") else {
+        guard let slug = deps.configReader.string(forKey: "frescoSlug") else {
             throw FrescoError.configurationError("FRESCO_SLUG is required")
         }
-
-        let gemini: any GeminiClientProtocol
-        let r2: any R2ClientProtocol
-
-        if let overrideGemini, let overrideR2 {
-            gemini = overrideGemini
-            r2 = overrideR2
-        } else {
-            guard let geminiApiKey = config.string(forKey: "geminiApiKey") else {
-                throw FrescoError.configurationError("GEMINI_API_KEY is required")
-            }
-            guard let r2AccountId = config.string(forKey: "r2AccountId") else {
-                throw FrescoError.configurationError("R2_ACCOUNT_ID is required")
-            }
-            guard let r2AccessKeyId = config.string(forKey: "r2AccessKeyId") else {
-                throw FrescoError.configurationError("R2_ACCESS_KEY_ID is required")
-            }
-            guard let r2SecretAccessKey = config.string(forKey: "r2SecretAccessKey") else {
-                throw FrescoError.configurationError("R2_SECRET_ACCESS_KEY is required")
-            }
-            guard let r2Bucket = config.string(forKey: "r2Bucket") else {
-                throw FrescoError.configurationError("R2_BUCKET is required")
-            }
-
-            gemini = GeminiClient(apiKey: geminiApiKey)
-            r2 = R2Client(
-                accountId: r2AccountId,
-                accessKeyId: r2AccessKeyId,
-                secretAccessKey: r2SecretAccessKey,
-                bucket: r2Bucket
-            )
-        }
-
-        guard let r2PublicBaseUrl = config.string(forKey: "r2PublicBaseUrl") else {
+        guard let r2PublicBaseUrl = deps.configReader.string(forKey: "r2PublicBaseUrl") else {
             throw FrescoError.configurationError("R2_PUBLIC_BASE_URL is required")
         }
 
-        let service = GenerateService(gemini: gemini, r2: r2, publicBaseURL: r2PublicBaseUrl)
+        let service = GenerateService(gemini: deps.gemini, r2: deps.r2, publicBaseURL: r2PublicBaseUrl)
         let result = try await service.generate(prompt: effectivePrompt, slug: slug, date: Date())
 
         let dateString = ISO8601DateFormatter.dateOnlyString(from: result.date)
-        let galleryWriter: any GalleryWriterProtocol = overrideGalleryWriter ?? GalleryWriter()
-        try galleryWriter.appendEntry(
+        try deps.galleryWriter.appendEntry(
             to: "gallery.md",
             date: dateString,
             imageURL: result.publicURL.absoluteString
         )
 
         print(result.publicURL.absoluteString)
+    }
+
+    private func makeDependencies() throws -> Dependencies {
+        let config = ConfigReader(provider: EnvironmentVariablesProvider())
+
+        guard let geminiApiKey = config.string(forKey: "geminiApiKey") else {
+            throw FrescoError.configurationError("GEMINI_API_KEY is required")
+        }
+        guard let r2AccountId = config.string(forKey: "r2AccountId") else {
+            throw FrescoError.configurationError("R2_ACCOUNT_ID is required")
+        }
+        guard let r2AccessKeyId = config.string(forKey: "r2AccessKeyId") else {
+            throw FrescoError.configurationError("R2_ACCESS_KEY_ID is required")
+        }
+        guard let r2SecretAccessKey = config.string(forKey: "r2SecretAccessKey") else {
+            throw FrescoError.configurationError("R2_SECRET_ACCESS_KEY is required")
+        }
+        guard let r2Bucket = config.string(forKey: "r2Bucket") else {
+            throw FrescoError.configurationError("R2_BUCKET is required")
+        }
+
+        return Dependencies(
+            configReader: config,
+            gemini: GeminiClient(apiKey: geminiApiKey),
+            r2: R2Client(
+                accountId: r2AccountId,
+                accessKeyId: r2AccessKeyId,
+                secretAccessKey: r2SecretAccessKey,
+                bucket: r2Bucket
+            ),
+            galleryWriter: GalleryWriter()
+        )
     }
 }
