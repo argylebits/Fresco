@@ -49,7 +49,7 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
     }
 
     func buildRequest(prompt: String) throws(FrescoError) -> URLRequest {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict")
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict")
         else {
             throw .geminiError("Invalid Gemini endpoint URL")
         }
