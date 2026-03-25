@@ -57,10 +57,10 @@ struct InitCommandTests {
             try await cmd.run()
 
             let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(env.contains("FRESCO_PROMPT="))
-            #expect(env.contains("FRESCO_SLUG=\"test-slug\""))
-            #expect(env.contains("GEMINI_API_KEY=\"gkey\""))
-            #expect(env.contains("R2_BUCKET=\"bucket\""))
+            #expect(env.contains("FRESCO_PROMPT=test prompt"))
+            #expect(env.contains("FRESCO_SLUG=test-slug"))
+            #expect(env.contains("GEMINI_API_KEY=gkey"))
+            #expect(env.contains("R2_BUCKET=bucket"))
 
             let attrs = try FileManager.default.attributesOfItem(atPath: dir + "/.env")
             let permissions = attrs[.posixPermissions] as? Int
@@ -122,7 +122,7 @@ struct InitCommandTests {
             try await cmd.run()
 
             let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(env.contains("FRESCO_SLUG=\"test-slug\""))
+            #expect(env.contains("FRESCO_SLUG=test-slug"))
         }
     }
 
