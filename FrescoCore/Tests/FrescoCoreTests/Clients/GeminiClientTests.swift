@@ -7,7 +7,7 @@ import FoundationNetworking
 
 @testable import FrescoCore
 
-private let endpointURL = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict")!
+private let endpointURL = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict")!
 
 private func makeResponse(statusCode: Int) -> HTTPURLResponse {
     HTTPURLResponse(url: endpointURL, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
@@ -30,6 +30,22 @@ struct GeminiClientTests {
         #expect(body.instances.count == 1)
         #expect(body.instances[0].prompt == "a sunset")
         #expect(body.parameters.sampleCount == 1)
+    }
+
+    @Test func buildRequest_usesImagenUltraModel() throws {
+        let client = GeminiClient(apiKey: "test-key")
+        let request = try client.buildRequest(prompt: "test")
+
+        #expect(request.url?.absoluteString.contains("imagen-4.0-ultra-generate-001") == true)
+    }
+
+    @Test func buildRequest_requests16x9AspectRatio() throws {
+        let client = GeminiClient(apiKey: "test-key")
+        let request = try client.buildRequest(prompt: "test")
+
+        let bodyData = request.httpBody!
+        let body = try JSONDecoder().decode(GeminiRequest.self, from: bodyData)
+        #expect(body.parameters.aspectRatio == "16:9")
     }
 
     @Test func buildRequest_setsAPIKeyHeader() throws {

@@ -11,6 +11,7 @@ struct GeminiRequest: Codable, Sendable {
 
     struct Parameters: Codable, Sendable {
         let sampleCount: Int
+        let aspectRatio: String
     }
 
     let instances: [Instance]
@@ -49,7 +50,7 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
     }
 
     func buildRequest(prompt: String) throws(FrescoError) -> URLRequest {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict")
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict")
         else {
             throw .geminiError("Invalid Gemini endpoint URL")
         }
@@ -61,7 +62,7 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
 
         let body = GeminiRequest(
             instances: [.init(prompt: prompt)],
-            parameters: .init(sampleCount: 1)
+            parameters: .init(sampleCount: 1, aspectRatio: "16:9")
         )
         do {
             request.httpBody = try JSONEncoder().encode(body)

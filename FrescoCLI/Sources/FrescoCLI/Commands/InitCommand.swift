@@ -70,17 +70,17 @@ struct InitCommand: AsyncParsableCommand {
         _ = try workflowWriter.cronExpression(schedule: resolvedSchedule, hour: resolvedScheduleHour)
 
         let envContent = """
-            FRESCO_PROMPT="\(resolvedPrompt.escapedForEnv)"
-            FRESCO_SLUG="\(resolvedSlug.escapedForEnv)"
-            FRESCO_NAME="\(resolvedName.escapedForEnv)"
-            FRESCO_SCHEDULE="\(resolvedSchedule.escapedForEnv)"
-            FRESCO_SCHEDULE_HOUR="\(resolvedScheduleHour)"
-            GEMINI_API_KEY="\(resolvedGeminiKey.escapedForEnv)"
-            R2_ACCOUNT_ID="\(resolvedR2AccountId.escapedForEnv)"
-            R2_ACCESS_KEY_ID="\(resolvedR2AccessKeyId.escapedForEnv)"
-            R2_SECRET_ACCESS_KEY="\(resolvedR2SecretAccessKey.escapedForEnv)"
-            R2_BUCKET="\(resolvedR2Bucket.escapedForEnv)"
-            R2_PUBLIC_BASE_URL="\(resolvedR2PublicBaseUrl.escapedForEnv)"
+            FRESCO_PROMPT=\(resolvedPrompt)
+            FRESCO_SLUG=\(resolvedSlug)
+            FRESCO_NAME=\(resolvedName)
+            FRESCO_SCHEDULE=\(resolvedSchedule)
+            FRESCO_SCHEDULE_HOUR=\(resolvedScheduleHour)
+            GEMINI_API_KEY=\(resolvedGeminiKey)
+            R2_ACCOUNT_ID=\(resolvedR2AccountId)
+            R2_ACCESS_KEY_ID=\(resolvedR2AccessKeyId)
+            R2_SECRET_ACCESS_KEY=\(resolvedR2SecretAccessKey)
+            R2_BUCKET=\(resolvedR2Bucket)
+            R2_PUBLIC_BASE_URL=\(resolvedR2PublicBaseUrl)
             """
 
         try envContent.write(toFile: envPath, atomically: true, encoding: .utf8)
@@ -140,13 +140,5 @@ struct InitCommand: AsyncParsableCommand {
             return defaultValue
         }
         return input
-    }
-}
-
-private extension String {
-    var escapedForEnv: String {
-        replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "\n", with: "\\n")
     }
 }

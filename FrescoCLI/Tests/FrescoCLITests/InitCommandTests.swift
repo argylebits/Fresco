@@ -1,6 +1,7 @@
-import Testing
-import Foundation
 import ArgumentParser
+import Configuration
+import Foundation
+import Testing
 @testable import FrescoCLI
 
 @Suite(.serialized)
@@ -57,10 +58,10 @@ struct InitCommandTests {
             try await cmd.run()
 
             let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(env.contains("FRESCO_PROMPT="))
-            #expect(env.contains("FRESCO_SLUG=\"test-slug\""))
-            #expect(env.contains("GEMINI_API_KEY=\"gkey\""))
-            #expect(env.contains("R2_BUCKET=\"bucket\""))
+            #expect(env.contains("FRESCO_PROMPT=test prompt"))
+            #expect(env.contains("FRESCO_SLUG=test-slug"))
+            #expect(env.contains("GEMINI_API_KEY=gkey"))
+            #expect(env.contains("R2_BUCKET=bucket"))
 
             let attrs = try FileManager.default.attributesOfItem(atPath: dir + "/.env")
             let permissions = attrs[.posixPermissions] as? Int
@@ -122,7 +123,7 @@ struct InitCommandTests {
             try await cmd.run()
 
             let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(env.contains("FRESCO_SLUG=\"test-slug\""))
+            #expect(env.contains("FRESCO_SLUG=test-slug"))
         }
     }
 
@@ -137,6 +138,49 @@ struct InitCommandTests {
 
             let workflow = try String(contentsOfFile: workflowDir + "/fresco.yml", encoding: .utf8)
             #expect(workflow == "existing workflow")
+        }
+    }
+
+    @Test func run_envFileRoundTrips_throughConfigReader() async throws {
+        try await inTmpDir { dir in
+            var cmd = try makeCommand(extraFlags: [
+                "--prompt", "Generate a hero banner image in 4:1 aspect ratio. It should be of a fresco like you'd see around the central Texas area. Make sure it looks authentically and unapologetically central Texan.",
+                "--gemini-key", "AIzaSyB-test-key_123",
+            ])
+            try await cmd.run()
+
+            let provider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+            let config = ConfigReader(provider: provider)
+
+            #expect(config.string(forKey: "geminiApiKey") == "AIzaSyB-test-key_123")
+            #expect(config.string(forKey: "frescoSlug") == "test-slug")
+            #expect(config.string(forKey: "frescoPrompt")?.hasPrefix("Generate a hero banner") == true)
+            #expect(config.string(forKey: "r2.bucket") == "bucket")
+            #expect(config.string(forKey: "r2.publicBaseUrl") == "https://pub.r2.dev")
+        }
+    }
+
+    @Test func run_envValues_noLiteralQuotes() async throws {
+        try await inTmpDir { dir in
+            var cmd = try makeCommand()
+            try await cmd.run()
+
+            let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
+            #expect(!env.contains("=\""))
+            #expect(!env.contains("\"\n"))
+        }
+    }
+
+    @Test func run_promptWithSpecialCharacters_survivesRoundTrip() async throws {
+        let prompt = "A fresco like you'd see in central Texas, tagged with graffiti art that says \"Fresco\". Include elements & themes from the current month."
+        try await inTmpDir { dir in
+            var cmd = try makeCommand(extraFlags: ["--prompt", prompt])
+            try await cmd.run()
+
+            let provider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+            let config = ConfigReader(provider: provider)
+
+            #expect(config.string(forKey: "frescoPrompt") == prompt)
         }
     }
 
