@@ -9,6 +9,7 @@ let package = Package(
     dependencies: [
         .package(path: "../FrescoCore"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
+        .package(url: "https://github.com/argylebits/swift-version-plugin.git", from: "1.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -16,6 +17,9 @@ let package = Package(
             dependencies: [
                 "FrescoCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            plugins: [
+                .plugin(name: "VersionPlugin", package: "swift-version-plugin"),
             ]
         ),
         .testTarget(
