@@ -138,7 +138,7 @@ class Fresco < Formula
   end
 
   test do
-    assert_match "fresco", shell_output("#{bin}/fresco --help")
+    assert_match "fresco", shell_output("HASH_BIN_PLACEHOLDER/fresco --help")
   end
 end
 RUBY
@@ -148,6 +148,7 @@ RUBY
           FORMULA="${FORMULA//SHA_MACOS_X86_PLACEHOLDER/$SHA_MACOS_X86}"
           FORMULA="${FORMULA//SHA_LINUX_ARM64_PLACEHOLDER/$SHA_LINUX_ARM64}"
           FORMULA="${FORMULA//SHA_LINUX_X86_PLACEHOLDER/$SHA_LINUX_X86}"
+          FORMULA="${FORMULA//HASH_BIN_PLACEHOLDER/#{bin}}"
 
           EXISTING=$(gh api repos/argylebits/homebrew-tap/contents/Formula/fresco.rb --jq '.sha')
 
