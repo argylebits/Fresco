@@ -22,74 +22,24 @@ struct InitCommand: AsyncParsableCommand {
     @Option(name: .long, help: "UTC hour for generation (0-23)")
     var scheduleHour: Int?
 
-    @Option(name: .long, help: "Gemini API key")
-    var geminiKey: String?
-
-    @Option(name: .long, help: "Cloudflare R2 account ID")
-    var r2AccountId: String?
-
-    @Option(name: .long, help: "R2 access key ID")
-    var r2AccessKeyId: String?
-
-    @Option(name: .long, help: "R2 secret access key")
-    var r2SecretAccessKey: String?
-
-    @Option(name: .long, help: "R2 bucket name")
-    var r2Bucket: String?
-
-    @Option(name: .long, help: "R2 public base URL")
-    var r2PublicBaseUrl: String?
-
     @Flag(name: .long, help: "Use default/placeholder values for anything not provided")
     var defaults: Bool = false
 
-    @Flag(name: .long, help: "Overwrite existing configuration")
-    var force: Bool = false
-
     mutating func run() async throws {
-        let envPath = ".env"
-        if FileManager.default.fileExists(atPath: envPath) && !force {
-            print(".env already exists. Use --force to overwrite.")
-            throw ExitCode.failure
-        }
-
         let resolvedName = name ?? resolve("Project name", default: "My Project")
-        let resolvedSlug = slug ?? resolve("Project slug", default: "my-project")
-        let resolvedPrompt = prompt ?? resolve("Image generation prompt", default: "A fresco like the ones you'd see in central Texas, tagged with graffiti art that says Fresco. 4:1.")
         let resolvedSchedule = schedule ?? resolve("Schedule (daily, weekly, monthly, quarterly, annual)", default: "daily")
         let resolvedScheduleHour = scheduleHour ?? resolveInt("Schedule hour (0-23 UTC)", default: 3)
-        let resolvedGeminiKey = geminiKey ?? resolve("Gemini API key", default: "your-gemini-api-key")
-        let resolvedR2AccountId = r2AccountId ?? resolve("R2 account ID", default: "your-cloudflare-account-id")
-        let resolvedR2AccessKeyId = r2AccessKeyId ?? resolve("R2 access key ID", default: "your-r2-access-key-id")
-        let resolvedR2SecretAccessKey = r2SecretAccessKey ?? resolve("R2 secret access key", default: "your-r2-secret-access-key")
-        let resolvedR2Bucket = r2Bucket ?? resolve("R2 bucket name", default: "fresco-images")
-        let resolvedR2PublicBaseUrl = r2PublicBaseUrl ?? resolve("R2 public base URL", default: "https://pub-xxxx.r2.dev")
 
         // Validate before writing any files
         let workflowWriter = WorkflowWriter()
         _ = try workflowWriter.cronExpression(schedule: resolvedSchedule, hour: resolvedScheduleHour)
 
-        let envContent = """
-            FRESCO_PROMPT=\(resolvedPrompt)
-            FRESCO_SLUG=\(resolvedSlug)
-            FRESCO_NAME=\(resolvedName)
-            FRESCO_SCHEDULE=\(resolvedSchedule)
-            FRESCO_SCHEDULE_HOUR=\(resolvedScheduleHour)
-            GEMINI_API_KEY=\(resolvedGeminiKey)
-            R2_ACCOUNT_ID=\(resolvedR2AccountId)
-            R2_ACCESS_KEY_ID=\(resolvedR2AccessKeyId)
-            R2_SECRET_ACCESS_KEY=\(resolvedR2SecretAccessKey)
-            R2_BUCKET=\(resolvedR2Bucket)
-            R2_PUBLIC_BASE_URL=\(resolvedR2PublicBaseUrl)
-            """
-
-        try envContent.write(toFile: envPath, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: envPath)
-        print("Wrote .env")
+        // Ensure .env is in .gitignore
+        ensureGitignoreContainsEnv()
 
         let workflowPath = ".github/workflows/fresco.yml"
-        if FileManager.default.fileExists(atPath: workflowPath) && !force {
-            print("\(workflowPath) already exists. Skipping. Use --force to overwrite.")
+        if FileManager.default.fileExists(atPath: workflowPath) {
+            print("\(workflowPath) already exists. Skipping.")
         } else {
             try workflowWriter.writeWorkflow(to: workflowPath, schedule: resolvedSchedule, scheduleHour: resolvedScheduleHour)
             print("Wrote \(workflowPath)")
@@ -97,10 +47,8 @@ struct InitCommand: AsyncParsableCommand {
 
         let readmePath = "README.md"
         if FileManager.default.fileExists(atPath: readmePath) {
-            let placeholderURL = "\(resolvedR2PublicBaseUrl)/\(resolvedSlug)/today.jpg"
-            let readmeUpdater = ReadmeUpdater()
-            try readmeUpdater.insertImageURL(in: readmePath, imageURL: placeholderURL)
-            print("Updated README.md with Fresco image placeholder")
+            try ReadmeUpdater().insertMarker(in: readmePath)
+            print("Added Fresco marker to README.md")
         }
 
         let galleryPath = "gallery.md"
@@ -115,9 +63,24 @@ struct InitCommand: AsyncParsableCommand {
         }
 
         print("\nFresco initialized!")
+        print("Copy fresco.template.env to .env and fill in your values.")
         print("Add your secrets as GitHub Actions repository secrets for scheduled runs.")
-        print("See the project README for the full list of required secrets.")
         print("Run `fresco generate` to create your first image.")
+    }
+
+    private func ensureGitignoreContainsEnv() {
+        let gitignorePath = ".gitignore"
+        if FileManager.default.fileExists(atPath: gitignorePath) {
+            guard let content = try? String(contentsOfFile: gitignorePath, encoding: .utf8) else { return }
+            let lines = content.components(separatedBy: "\n")
+            let hasEnv = lines.contains { $0.trimmingCharacters(in: .whitespaces) == ".env" }
+            if !hasEnv {
+                let append = content.hasSuffix("\n") ? ".env\n" : "\n.env\n"
+                try? (content + append).write(toFile: gitignorePath, atomically: true, encoding: .utf8)
+            }
+        } else {
+            try? ".env\n".write(toFile: gitignorePath, atomically: true, encoding: .utf8)
+        }
     }
 
     private func resolveInt(_ label: String, default defaultValue: Int) -> Int {

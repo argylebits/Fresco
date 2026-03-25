@@ -45,14 +45,14 @@ struct GenerateCommand: AsyncParsableCommand {
         } else if let configuredPrompt {
             effectivePrompt = append.map { "\(configuredPrompt) \($0)" } ?? configuredPrompt
         } else {
-            throw FrescoError.configurationError("FRESCO_PROMPT is required (or use --prompt)")
+            throw FrescoError.configurationError("FRESCO_PROMPT is required (or use --prompt). See fresco.template.env for required variables.")
         }
 
         guard let slug = deps.configReader.string(forKey: "frescoSlug") else {
-            throw FrescoError.configurationError("FRESCO_SLUG is required")
+            throw FrescoError.configurationError("FRESCO_SLUG is required. See fresco.template.env for required variables.")
         }
         guard let r2PublicBaseUrl = deps.configReader.string(forKey: "r2.publicBaseUrl") else {
-            throw FrescoError.configurationError("R2_PUBLIC_BASE_URL is required")
+            throw FrescoError.configurationError("R2_PUBLIC_BASE_URL is required. See fresco.template.env for required variables.")
         }
 
         let service = GenerateService(gemini: deps.gemini, r2: deps.r2, publicBaseURL: r2PublicBaseUrl)
@@ -87,19 +87,19 @@ struct GenerateCommand: AsyncParsableCommand {
         let config = ConfigReader(provider: envProvider)
 
         guard let geminiApiKey = config.string(forKey: "geminiApiKey") else {
-            throw FrescoError.configurationError("GEMINI_API_KEY is required")
+            throw FrescoError.configurationError("GEMINI_API_KEY is required. See fresco.template.env for required variables.")
         }
         guard let r2AccountId = config.string(forKey: "r2.accountId") else {
-            throw FrescoError.configurationError("R2_ACCOUNT_ID is required")
+            throw FrescoError.configurationError("R2_ACCOUNT_ID is required. See fresco.template.env for required variables.")
         }
         guard let r2AccessKeyId = config.string(forKey: "r2.accessKeyId") else {
-            throw FrescoError.configurationError("R2_ACCESS_KEY_ID is required")
+            throw FrescoError.configurationError("R2_ACCESS_KEY_ID is required. See fresco.template.env for required variables.")
         }
         guard let r2SecretAccessKey = config.string(forKey: "r2.secretAccessKey") else {
-            throw FrescoError.configurationError("R2_SECRET_ACCESS_KEY is required")
+            throw FrescoError.configurationError("R2_SECRET_ACCESS_KEY is required. See fresco.template.env for required variables.")
         }
         guard let r2Bucket = config.string(forKey: "r2.bucket") else {
-            throw FrescoError.configurationError("R2_BUCKET is required")
+            throw FrescoError.configurationError("R2_BUCKET is required. See fresco.template.env for required variables.")
         }
 
         return Dependencies(

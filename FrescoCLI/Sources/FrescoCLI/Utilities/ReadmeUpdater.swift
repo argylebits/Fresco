@@ -3,6 +3,13 @@ import Foundation
 struct ReadmeUpdater: Sendable {
     private let marker = "<!-- Fresco image -->"
 
+    func insertMarker(in readmePath: String) throws {
+        let content = try String(contentsOfFile: readmePath, encoding: .utf8)
+        guard !content.contains(marker) else { return }
+        let result = marker + "\n" + content
+        try result.write(toFile: readmePath, atomically: true, encoding: .utf8)
+    }
+
     func insertImageURL(in readmePath: String, imageURL: String, name: String = "Fresco") throws {
         let content = try String(contentsOfFile: readmePath, encoding: .utf8)
         let imageLine = "![\(name)](\(imageURL))"
