@@ -5,43 +5,45 @@ import Testing
 struct GeminiRequestTests {
     @Test func encode_producesExpectedJSON() throws {
         let request = GeminiRequest(
-            instances: [.init(prompt: "a sunset")],
-            parameters: .init(sampleCount: 1)
+            contents: [.init(parts: [.init(text: "a sunset")])],
+            generationConfig: .init(responseModalities: ["IMAGE", "TEXT"])
         )
         let data = try JSONEncoder().encode(request)
         let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
 
-        let instances = json["instances"] as! [[String: Any]]
-        #expect(instances.count == 1)
-        #expect(instances[0]["prompt"] as! String == "a sunset")
+        let contents = json["contents"] as! [[String: Any]]
+        #expect(contents.count == 1)
+        let parts = contents[0]["parts"] as! [[String: Any]]
+        #expect(parts[0]["text"] as! String == "a sunset")
 
-        let parameters = json["parameters"] as! [String: Any]
-        #expect(parameters["sampleCount"] as! Int == 1)
+        let config = json["generationConfig"] as! [String: Any]
+        let modalities = config["responseModalities"] as! [String]
+        #expect(modalities == ["IMAGE", "TEXT"])
     }
 
     @Test func encode_roundTrips() throws {
         let request = GeminiRequest(
-            instances: [.init(prompt: "test prompt")],
-            parameters: .init(sampleCount: 1)
+            contents: [.init(parts: [.init(text: "test prompt")])],
+            generationConfig: .init(responseModalities: ["IMAGE", "TEXT"])
         )
         let data = try JSONEncoder().encode(request)
         let decoded = try JSONDecoder().decode(GeminiRequest.self, from: data)
-        #expect(decoded.instances[0].prompt == "test prompt")
-        #expect(decoded.parameters.sampleCount == 1)
+        #expect(decoded.contents[0].parts[0].text == "test prompt")
+        #expect(decoded.generationConfig.responseModalities == ["IMAGE", "TEXT"])
     }
 }
 
 struct GeminiResponseTests {
     @Test func decode_validJSON() throws {
         let json = """
-        {"predictions": [{"bytesBase64Encoded": "AQID"}]}
+        {"candidates": [{"content": {"parts": [{"inlineData": {"mimeType": "image/png", "data": "AQID"}}]}}]}
         """
         let response = try JSONDecoder().decode(GeminiResponse.self, from: Data(json.utf8))
-        #expect(response.predictions.count == 1)
-        #expect(response.predictions[0].bytesBase64Encoded == "AQID")
+        #expect(response.candidates.count == 1)
+        #expect(response.candidates[0].content.parts[0].inlineData?.data == "AQID")
     }
 
-    @Test func decode_missingPredictions_throws() {
+    @Test func decode_missingCandidates_throws() {
         let json = """
         {"other": "value"}
         """
@@ -50,20 +52,19 @@ struct GeminiResponseTests {
         }
     }
 
-    @Test func decode_emptyPredictions() throws {
+    @Test func decode_emptyCandidates() throws {
         let json = """
-        {"predictions": []}
+        {"candidates": []}
         """
         let response = try JSONDecoder().decode(GeminiResponse.self, from: Data(json.utf8))
-        #expect(response.predictions.isEmpty)
+        #expect(response.candidates.isEmpty)
     }
 
-    @Test func decode_missingBase64Field_throws() {
+    @Test func decode_textOnlyPart_hasNoInlineData() throws {
         let json = """
-        {"predictions": [{"wrongField": "value"}]}
+        {"candidates": [{"content": {"parts": [{"text": "Here is your image"}]}}]}
         """
-        #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(GeminiResponse.self, from: Data(json.utf8))
-        }
+        let response = try JSONDecoder().decode(GeminiResponse.self, from: Data(json.utf8))
+        #expect(response.candidates[0].content.parts[0].inlineData == nil)
     }
 }
