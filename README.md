@@ -1,4 +1,4 @@
-![Daily Fresco](https://pub-placeholder.r2.dev/fresco/today.jpg)
+![Daily Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/today.jpg)
 
 # Fresco
 
