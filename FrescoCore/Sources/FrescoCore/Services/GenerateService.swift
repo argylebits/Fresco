@@ -14,7 +14,7 @@ public struct GenerateService: Sendable {
     public func generate(prompt: String, slug: String, date: Date) async throws(FrescoError) -> GenerationResult {
         let imageData = try await gemini.generateImage(prompt: prompt)
 
-        let dateString = formatDate(date)
+        let dateString = ISO8601DateFormatter.dateOnlyString(from: date)
         let archiveKey = "\(slug)/\(dateString).jpg"
         let todayKey = "\(slug)/today.jpg"
 
@@ -47,12 +47,5 @@ public struct GenerateService: Sendable {
             r2Key: archiveKey,
             publicURL: publicURL
         )
-    }
-
-    private func formatDate(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate, .withDashSeparatorInDate]
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter.string(from: date)
     }
 }
