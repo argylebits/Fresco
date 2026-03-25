@@ -7,15 +7,15 @@ import FoundationNetworking
 
 @testable import FrescoCore
 
-private let endpointURL = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent")!
+private let endpointURL = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict")!
 
 private func makeResponse(statusCode: Int) -> HTTPURLResponse {
     HTTPURLResponse(url: endpointURL, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
 }
 
-private func makeValidResponseData(base64: String = "AQID", mimeType: String = "image/png") -> Data {
+private func makeValidResponseData(base64: String = "AQID") -> Data {
     let json = """
-        {"candidates": [{"content": {"parts": [{"inlineData": {"mimeType": "\(mimeType)", "data": "\(base64)"}}]}}]}
+        {"predictions": [{"bytesBase64Encoded": "\(base64)"}]}
         """
     return Data(json.utf8)
 }
@@ -27,16 +27,25 @@ struct GeminiClientTests {
 
         let bodyData = request.httpBody!
         let body = try JSONDecoder().decode(GeminiRequest.self, from: bodyData)
-        #expect(body.contents.count == 1)
-        #expect(body.contents[0].parts[0].text == "a sunset")
-        #expect(body.generationConfig.responseModalities == ["IMAGE", "TEXT"])
+        #expect(body.instances.count == 1)
+        #expect(body.instances[0].prompt == "a sunset")
+        #expect(body.parameters.sampleCount == 1)
     }
 
-    @Test func buildRequest_usesGenerateContentEndpoint() throws {
+    @Test func buildRequest_usesImagenUltraModel() throws {
         let client = GeminiClient(apiKey: "test-key")
         let request = try client.buildRequest(prompt: "test")
 
-        #expect(request.url?.absoluteString.contains("gemini-2.5-flash-image:generateContent") == true)
+        #expect(request.url?.absoluteString.contains("imagen-4.0-ultra-generate-001") == true)
+    }
+
+    @Test func buildRequest_requests16x9AspectRatio() throws {
+        let client = GeminiClient(apiKey: "test-key")
+        let request = try client.buildRequest(prompt: "test")
+
+        let bodyData = request.httpBody!
+        let body = try JSONDecoder().decode(GeminiRequest.self, from: bodyData)
+        #expect(body.parameters.aspectRatio == "16:9")
     }
 
     @Test func buildRequest_setsAPIKeyHeader() throws {
@@ -87,10 +96,10 @@ struct GeminiClientTests {
         }
     }
 
-    @Test func handleResponse_noImagePart_throws() throws {
+    @Test func handleResponse_emptyPredictions_throws() throws {
         let client = GeminiClient(apiKey: "test-key")
         let json = Data("""
-            {"candidates": [{"content": {"parts": [{"text": "Here is your image"}]}}]}
+            {"predictions": []}
             """.utf8)
 
         #expect(throws: FrescoError.self) {
@@ -100,10 +109,12 @@ struct GeminiClientTests {
 
     @Test func handleResponse_invalidBase64_throws() throws {
         let client = GeminiClient(apiKey: "test-key")
-        let responseData = makeValidResponseData(base64: "%%%not-base64%%%")
+        let json = Data("""
+            {"predictions": [{"bytesBase64Encoded": "%%%not-base64%%%"}]}
+            """.utf8)
 
         #expect(throws: FrescoError.self) {
-            try client.handleResponse(data: responseData, response: makeResponse(statusCode: 200))
+            try client.handleResponse(data: json, response: makeResponse(statusCode: 200))
         }
     }
 }

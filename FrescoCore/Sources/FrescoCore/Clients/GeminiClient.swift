@@ -5,41 +5,25 @@ import FoundationNetworking
 #endif
 
 struct GeminiRequest: Codable, Sendable {
-    struct Content: Codable, Sendable {
-        struct Part: Codable, Sendable {
-            let text: String
-        }
-
-        let parts: [Part]
+    struct Instance: Codable, Sendable {
+        let prompt: String
     }
 
-    struct GenerationConfig: Codable, Sendable {
-        let responseModalities: [String]
+    struct Parameters: Codable, Sendable {
+        let sampleCount: Int
+        let aspectRatio: String
     }
 
-    let contents: [Content]
-    let generationConfig: GenerationConfig
+    let instances: [Instance]
+    let parameters: Parameters
 }
 
 struct GeminiResponse: Codable, Sendable {
-    struct Candidate: Codable, Sendable {
-        struct Content: Codable, Sendable {
-            struct Part: Codable, Sendable {
-                let inlineData: InlineData?
-
-                struct InlineData: Codable, Sendable {
-                    let mimeType: String
-                    let data: String
-                }
-            }
-
-            let parts: [Part]
-        }
-
-        let content: Content
+    struct Prediction: Codable, Sendable {
+        let bytesBase64Encoded: String
     }
 
-    let candidates: [Candidate]
+    let predictions: [Prediction]
 }
 
 public struct GeminiClient: GeminiClientProtocol, Sendable {
@@ -66,7 +50,7 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
     }
 
     func buildRequest(prompt: String) throws(FrescoError) -> URLRequest {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent")
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict")
         else {
             throw .geminiError("Invalid Gemini endpoint URL")
         }
@@ -77,8 +61,8 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let body = GeminiRequest(
-            contents: [.init(parts: [.init(text: prompt)])],
-            generationConfig: .init(responseModalities: ["IMAGE", "TEXT"])
+            instances: [.init(prompt: prompt)],
+            parameters: .init(sampleCount: 1, aspectRatio: "16:9")
         )
         do {
             request.httpBody = try JSONEncoder().encode(body)
@@ -112,9 +96,8 @@ public struct GeminiClient: GeminiClientProtocol, Sendable {
             throw .geminiError("Failed to decode response: \(error.localizedDescription)")
         }
 
-        guard let imagePart = geminiResponse.candidates.first?.content.parts.first(where: { $0.inlineData != nil }),
-            let inlineData = imagePart.inlineData,
-            let imageData = Data(base64Encoded: inlineData.data)
+        guard let base64String = geminiResponse.predictions.first?.bytesBase64Encoded,
+            let imageData = Data(base64Encoded: base64String)
         else {
             throw .geminiError("Failed to decode image from response")
         }
