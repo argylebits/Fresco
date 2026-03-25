@@ -1,5 +1,4 @@
 import ArgumentParser
-import Configuration
 import Foundation
 import Testing
 @testable import FrescoCLI
@@ -17,28 +16,14 @@ struct InitCommandTests {
             "--prompt", "a test prompt",
             "--schedule", "daily",
             "--schedule-hour", "8",
-            "--gemini-key", "key123",
-            "--r2-account-id", "acc123",
-            "--r2-access-key-id", "ak123",
-            "--r2-secret-access-key", "sk123",
-            "--r2-bucket", "mybucket",
-            "--r2-public-base-url", "https://pub.r2.dev",
             "--defaults",
-            "--force"
         ])
         #expect(cmd.name == "Test")
         #expect(cmd.slug == "test")
         #expect(cmd.prompt == "a test prompt")
         #expect(cmd.schedule == "daily")
         #expect(cmd.scheduleHour == 8)
-        #expect(cmd.geminiKey == "key123")
-        #expect(cmd.r2AccountId == "acc123")
-        #expect(cmd.r2AccessKeyId == "ak123")
-        #expect(cmd.r2SecretAccessKey == "sk123")
-        #expect(cmd.r2Bucket == "mybucket")
-        #expect(cmd.r2PublicBaseUrl == "https://pub.r2.dev")
         #expect(cmd.defaults == true)
-        #expect(cmd.force == true)
     }
 
     @Test func command_parsesWithNoFlags() throws {
@@ -49,23 +34,14 @@ struct InitCommandTests {
         #expect(cmd.schedule == nil)
         #expect(cmd.scheduleHour == nil)
         #expect(cmd.defaults == false)
-        #expect(cmd.force == false)
     }
 
-    @Test func run_writesEnvFile() async throws {
+    @Test func run_doesNotWriteEnvFile() async throws {
         try await inTmpDir { dir in
             var cmd = try makeCommand()
             try await cmd.run()
 
-            let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(env.contains("FRESCO_PROMPT=test prompt"))
-            #expect(env.contains("FRESCO_SLUG=test-slug"))
-            #expect(env.contains("GEMINI_API_KEY=gkey"))
-            #expect(env.contains("R2_BUCKET=bucket"))
-
-            let attrs = try FileManager.default.attributesOfItem(atPath: dir + "/.env")
-            let permissions = attrs[.posixPermissions] as? Int
-            #expect(permissions == 0o600)
+            #expect(!FileManager.default.fileExists(atPath: dir + "/.env"))
         }
     }
 
@@ -91,7 +67,7 @@ struct InitCommandTests {
         }
     }
 
-    @Test func run_updatesReadmeIfExists() async throws {
+    @Test func run_insertsMarkerInReadme() async throws {
         try await inTmpDir { dir in
             try "# Test Project\n".write(toFile: dir + "/README.md", atomically: true, encoding: .utf8)
 
@@ -100,34 +76,10 @@ struct InitCommandTests {
 
             let readme = try String(contentsOfFile: dir + "/README.md", encoding: .utf8)
             #expect(readme.contains("<!-- Fresco image -->"))
-            #expect(readme.contains("![Fresco](https://pub.r2.dev/test-slug/today.jpg)"))
         }
     }
 
-    @Test func run_failsWhenEnvExistsWithoutForce() async throws {
-        try await inTmpDir { dir in
-            try "existing".write(toFile: dir + "/.env", atomically: true, encoding: .utf8)
-
-            var cmd = try makeCommand()
-            await #expect(throws: ExitCode.self) {
-                try await cmd.run()
-            }
-        }
-    }
-
-    @Test func run_overwritesEnvWithForce() async throws {
-        try await inTmpDir { dir in
-            try "old content".write(toFile: dir + "/.env", atomically: true, encoding: .utf8)
-
-            var cmd = try makeCommand(extraFlags: ["--force"])
-            try await cmd.run()
-
-            let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(env.contains("FRESCO_SLUG=test-slug"))
-        }
-    }
-
-    @Test func run_skipsWorkflowWithoutForce() async throws {
+    @Test func run_skipsExistingWorkflow() async throws {
         try await inTmpDir { dir in
             let workflowDir = dir + "/.github/workflows"
             try FileManager.default.createDirectory(atPath: workflowDir, withIntermediateDirectories: true)
@@ -141,46 +93,39 @@ struct InitCommandTests {
         }
     }
 
-    @Test func run_envFileRoundTrips_throughConfigReader() async throws {
-        try await inTmpDir { dir in
-            var cmd = try makeCommand(extraFlags: [
-                "--prompt", "Generate a hero banner image in 4:1 aspect ratio. It should be of a fresco like you'd see around the central Texas area. Make sure it looks authentically and unapologetically central Texan.",
-                "--gemini-key", "AIzaSyB-test-key_123",
-            ])
-            try await cmd.run()
-
-            let provider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
-            let config = ConfigReader(provider: provider)
-
-            #expect(config.string(forKey: "geminiApiKey") == "AIzaSyB-test-key_123")
-            #expect(config.string(forKey: "frescoSlug") == "test-slug")
-            #expect(config.string(forKey: "frescoPrompt")?.hasPrefix("Generate a hero banner") == true)
-            #expect(config.string(forKey: "r2.bucket") == "bucket")
-            #expect(config.string(forKey: "r2.publicBaseUrl") == "https://pub.r2.dev")
-        }
-    }
-
-    @Test func run_envValues_noLiteralQuotes() async throws {
+    @Test func run_createsGitignoreWithEnv_whenMissing() async throws {
         try await inTmpDir { dir in
             var cmd = try makeCommand()
             try await cmd.run()
 
-            let env = try String(contentsOfFile: dir + "/.env", encoding: .utf8)
-            #expect(!env.contains("=\""))
-            #expect(!env.contains("\"\n"))
+            let gitignore = try String(contentsOfFile: dir + "/.gitignore", encoding: .utf8)
+            #expect(gitignore.contains(".env"))
         }
     }
 
-    @Test func run_promptWithSpecialCharacters_survivesRoundTrip() async throws {
-        let prompt = "A fresco like you'd see in central Texas, tagged with graffiti art that says \"Fresco\". Include elements & themes from the current month."
+    @Test func run_appendsEnvToGitignore_whenNotListed() async throws {
         try await inTmpDir { dir in
-            var cmd = try makeCommand(extraFlags: ["--prompt", prompt])
+            try "node_modules/\n.DS_Store\n".write(toFile: dir + "/.gitignore", atomically: true, encoding: .utf8)
+
+            var cmd = try makeCommand()
             try await cmd.run()
 
-            let provider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
-            let config = ConfigReader(provider: provider)
+            let gitignore = try String(contentsOfFile: dir + "/.gitignore", encoding: .utf8)
+            #expect(gitignore.contains(".env"))
+            #expect(gitignore.contains("node_modules/"))
+        }
+    }
 
-            #expect(config.string(forKey: "frescoPrompt") == prompt)
+    @Test func run_skipsGitignore_whenEnvAlreadyListed() async throws {
+        try await inTmpDir { dir in
+            try ".env\nnode_modules/\n".write(toFile: dir + "/.gitignore", atomically: true, encoding: .utf8)
+
+            var cmd = try makeCommand()
+            try await cmd.run()
+
+            let gitignore = try String(contentsOfFile: dir + "/.gitignore", encoding: .utf8)
+            let envCount = gitignore.components(separatedBy: "\n").filter { $0.trimmingCharacters(in: .whitespaces) == ".env" }.count
+            #expect(envCount == 1)
         }
     }
 
@@ -193,12 +138,6 @@ struct InitCommandTests {
             "--prompt", "test prompt",
             "--schedule", "daily",
             "--schedule-hour", "8",
-            "--gemini-key", "gkey",
-            "--r2-account-id", "acc",
-            "--r2-access-key-id", "ak",
-            "--r2-secret-access-key", "sk",
-            "--r2-bucket", "bucket",
-            "--r2-public-base-url", "https://pub.r2.dev",
             "--defaults",
         ]
         flags.append(contentsOf: extraFlags)

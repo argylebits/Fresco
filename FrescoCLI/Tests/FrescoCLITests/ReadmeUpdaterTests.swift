@@ -69,6 +69,42 @@ struct ReadmeUpdaterTests {
         #expect(lines.contains(where: { $0 == "![Fresco](https://pub-xxx.r2.dev/fresco/today.jpg)" }))
     }
 
+    @Test func insertMarker_addsMarkerOnly() throws {
+        let tmp = NSTemporaryDirectory() + "readme-markeronly-\(UUID().uuidString).md"
+        let content = """
+            # My Project
+
+            Some other content.
+            """
+        try content.write(toFile: tmp, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(atPath: tmp) }
+
+        try updater.insertMarker(in: tmp)
+
+        let result = try String(contentsOfFile: tmp, encoding: .utf8)
+        #expect(result.contains("<!-- Fresco image -->"))
+        #expect(!result.contains("!["))
+    }
+
+    @Test func insertMarker_skipsIfMarkerAlreadyExists() throws {
+        let tmp = NSTemporaryDirectory() + "readme-markerexists-\(UUID().uuidString).md"
+        let content = """
+            # My Project
+
+            <!-- Fresco image -->
+
+            Some other content.
+            """
+        try content.write(toFile: tmp, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(atPath: tmp) }
+
+        try updater.insertMarker(in: tmp)
+
+        let result = try String(contentsOfFile: tmp, encoding: .utf8)
+        let markerCount = result.components(separatedBy: "<!-- Fresco image -->").count - 1
+        #expect(markerCount == 1)
+    }
+
     @Test func insertImageURL_noMarker_addsMarkerAndImage() throws {
         let tmp = NSTemporaryDirectory() + "readme-nomarker-\(UUID().uuidString).md"
         let content = """
