@@ -19,7 +19,6 @@ struct GenerateCommand: AsyncParsableCommand {
         let configReader: ConfigReader
         let gemini: any GeminiClientProtocol
         let r2: any R2ClientProtocol
-        let galleryWriter: any GalleryWriterProtocol
     }
 
     var overrideDependencies: Dependencies?
@@ -57,18 +56,6 @@ struct GenerateCommand: AsyncParsableCommand {
 
         let service = GenerateService(gemini: deps.gemini, r2: deps.r2, publicBaseURL: r2PublicBaseUrl)
         let result = try await service.generate(prompt: effectivePrompt, slug: slug, date: Date())
-
-        let dateString = ISO8601DateFormatter.dateOnlyString(from: result.date)
-        try deps.galleryWriter.appendEntry(
-            to: "gallery.md",
-            date: dateString,
-            imageURL: result.publicURL.absoluteString
-        )
-
-        if FileManager.default.fileExists(atPath: "README.md") {
-            let name = deps.configReader.string(forKey: "frescoName") ?? "Fresco"
-            try ReadmeUpdater().insertImageURL(in: "README.md", imageURL: result.publicURL.absoluteString, name: name)
-        }
 
         print(result.publicURL.absoluteString)
     }
@@ -111,7 +98,6 @@ struct GenerateCommand: AsyncParsableCommand {
                 secretAccessKey: r2SecretAccessKey,
                 bucket: r2Bucket
             ),
-            galleryWriter: GalleryWriter()
         )
     }
 }

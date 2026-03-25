@@ -61,26 +61,6 @@ struct GenerateCommandTests {
         }
     }
 
-    @Test func run_doesNotWriteGalleryOrReadme() async throws {
-        let dir = NSTemporaryDirectory() + "fresco-gen-\(UUID().uuidString)"
-        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        let originalDir = FileManager.default.currentDirectoryPath
-        FileManager.default.changeCurrentDirectoryPath(dir)
-        defer {
-            FileManager.default.changeCurrentDirectoryPath(originalDir)
-            try? FileManager.default.removeItem(atPath: dir)
-        }
-
-        try "# Test\n".write(toFile: dir + "/README.md", atomically: true, encoding: .utf8)
-
-        var cmd = try makeCommand(args: ["--prompt", "test"], config: [:])
-        try await cmd.run()
-
-        #expect(!FileManager.default.fileExists(atPath: dir + "/gallery.md"))
-        let readme = try String(contentsOfFile: dir + "/README.md", encoding: .utf8)
-        #expect(!readme.contains("<!-- Fresco image -->"))
-    }
-
     @Test func configKeys_resolveToExpectedEnvVarNames() {
         let config = ConfigReader(provider: EnvironmentVariablesProvider(
             environmentVariables: [
@@ -110,8 +90,7 @@ struct GenerateCommandTests {
     private func makeCommand(
         args: [String],
         config: [AbsoluteConfigKey: ConfigValue],
-        onGenerateImage: (@Sendable (String) -> Void)? = nil,
-        onAppendEntry: (@Sendable (String, String, String) -> Void)? = nil
+        onGenerateImage: (@Sendable (String) -> Void)? = nil
     ) throws -> GenerateCommand {
         var fullConfig = config
         if fullConfig["frescoSlug"] == nil { fullConfig["frescoSlug"] = "test-slug" }
@@ -121,8 +100,7 @@ struct GenerateCommandTests {
         cmd.overrideDependencies = GenerateCommand.Dependencies(
             configReader: ConfigReader(provider: InMemoryProvider(values: fullConfig)),
             gemini: MockCLIGeminiClient(result: Data([0xFF, 0xD8]), onGenerateImage: onGenerateImage),
-            r2: MockCLIR2Client(),
-            galleryWriter: MockCLIGalleryWriter(onAppendEntry: onAppendEntry)
+            r2: MockCLIR2Client()
         )
         return cmd
     }
