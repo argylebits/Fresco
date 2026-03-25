@@ -106,7 +106,7 @@ jobs:
           SHA_LINUX_ARM64=$(shasum -a 256 artifacts/fresco-linux-arm64.tar.gz | awk '{print $1}')
           SHA_LINUX_X86=$(shasum -a 256 artifacts/fresco-linux-x86_64.tar.gz | awk '{print $1}')
 
-          FORMULA=$(cat <<'RUBY'
+          read -r -d '' FORMULA << 'RUBY' || true
 class Fresco < Formula
   desc "AI image generation CLI"
   homepage "https://github.com/argylebits/Fresco"
@@ -142,7 +142,6 @@ class Fresco < Formula
   end
 end
 RUBY
-          )
 
           FORMULA="${FORMULA//VERSION_PLACEHOLDER/$VERSION}"
           FORMULA="${FORMULA//SHA_MACOS_ARM64_PLACEHOLDER/$SHA_MACOS_ARM64}"
