@@ -61,16 +61,24 @@ struct GenerateCommandTests {
         }
     }
 
-    @Test func run_appendsGalleryEntry() async throws {
-        let receivedURL = Mutex<String?>(nil)
-        var cmd = try makeCommand(
-            args: ["--prompt", "test"],
-            config: [:],
-            onAppendEntry: { _, _, url in receivedURL.withLock { $0 = url } }
-        )
+    @Test func run_doesNotWriteGalleryOrReadme() async throws {
+        let dir = NSTemporaryDirectory() + "fresco-gen-\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(dir)
+        defer {
+            FileManager.default.changeCurrentDirectoryPath(originalDir)
+            try? FileManager.default.removeItem(atPath: dir)
+        }
+
+        try "# Test\n".write(toFile: dir + "/README.md", atomically: true, encoding: .utf8)
+
+        var cmd = try makeCommand(args: ["--prompt", "test"], config: [:])
         try await cmd.run()
-        let url = receivedURL.withLock { $0 }
-        #expect(url?.contains("https://example.com/test-slug/") == true)
+
+        #expect(!FileManager.default.fileExists(atPath: dir + "/gallery.md"))
+        let readme = try String(contentsOfFile: dir + "/README.md", encoding: .utf8)
+        #expect(!readme.contains("<!-- Fresco image -->"))
     }
 
     @Test func configKeys_resolveToExpectedEnvVarNames() {
