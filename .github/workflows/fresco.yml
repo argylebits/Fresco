@@ -59,7 +59,15 @@ jobs:
           URL="${{ steps.fresco.outputs.url }}"
           DATE="$(date +%Y-%m-%d)"
           TMP="$(mktemp)"
-          { head -n 2 gallery.md; echo "| ${DATE} | ![]($URL) |"; tail -n +3 gallery.md; } > "$TMP"
+          awk -v date="$DATE" -v url="$URL" '
+            /^\|[-]+/ && !inserted {
+              print
+              print "| " date " | ![](" url ") |"
+              inserted = 1
+              next
+            }
+            { print }
+          ' gallery.md > "$TMP"
           mv "$TMP" gallery.md
 
       - name: Open PR with gallery update
