@@ -156,3 +156,8 @@ jobs:
             -f sha="$EXISTING"
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Trigger Fresco image generation
+        run: gh workflow run fresco.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
