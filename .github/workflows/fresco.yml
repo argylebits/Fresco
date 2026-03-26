@@ -67,6 +67,7 @@ jobs:
               next
             }
             { print }
+            END { if (!inserted) exit 1 }
           ' gallery.md > "$TMP"
           mv "$TMP" gallery.md
 
