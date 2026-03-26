@@ -36,7 +36,7 @@ jobs:
 
       - name: Copy to latest.jpg
         run: |
-          curl -sfo /tmp/latest.jpg "${{ steps.fresco.outputs.url }}"
+          curl -fsSo /tmp/latest.jpg "${{ steps.fresco.outputs.url }}"
           aws s3 cp /tmp/latest.jpg \
             "s3://${R2_BUCKET}/${FRESCO_SLUG}/latest.jpg" \
             --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
