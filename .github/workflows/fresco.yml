@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   generate:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
@@ -40,13 +40,15 @@ jobs:
           aws s3 cp /tmp/latest.jpg \
             "s3://${R2_BUCKET}/${FRESCO_SLUG}/latest.jpg" \
             --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
-            --content-type "image/jpeg"
+            --content-type "image/jpeg" \
+            --cache-control "no-cache"
         env:
           R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET:             ${{ secrets.R2_BUCKET }}
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
           AWS_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    auto
 
       - name: Purge GitHub camo cache
         if: vars.CAMO_IMAGE_URL != ''
@@ -56,7 +58,9 @@ jobs:
         run: |
           URL="${{ steps.fresco.outputs.url }}"
           DATE="$(date +%Y-%m-%d)"
-          echo "| ${DATE} | ![]($URL) |" >> gallery.md
+          TMP="$(mktemp)"
+          { head -n 2 gallery.md; echo "| ${DATE} | ![]($URL) |"; tail -n +3 gallery.md; } > "$TMP"
+          mv "$TMP" gallery.md
 
       - name: Open PR with gallery update
         run: |
