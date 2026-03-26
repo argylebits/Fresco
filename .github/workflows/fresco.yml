@@ -52,7 +52,7 @@ jobs:
 
       - name: Purge GitHub camo cache
         if: vars.CAMO_IMAGE_URL != ''
-        run: curl -sX PURGE "${{ vars.CAMO_IMAGE_URL }}"
+        run: curl -fsS -X PURGE "${{ vars.CAMO_IMAGE_URL }}"
 
       - name: Append gallery entry
         run: |

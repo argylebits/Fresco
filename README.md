@@ -66,7 +66,7 @@ fresco generate --preview                                # generate locally, no 
 
 ## Workflow examples
 
-The [`Examples/`](Examples/) directory has ready-to-use GitHub Actions workflows. Copy one into `.github/workflows/` and add your secrets.
+The [`Examples/`](Examples/) directory has ready-to-use GitHub Actions workflows. Copy one into `.github/workflows/` and add your secrets. The snippets below are excerpts — see the linked files for complete workflows.
 
 **Scheduled generation** ([`fresco-cron.yml`](Examples/fresco-cron.yml)):
 
