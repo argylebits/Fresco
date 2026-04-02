@@ -25,6 +25,10 @@ public struct UploadService: Sendable {
         let fileURL = URL(fileURLWithPath: filePath)
         let filename = fileURL.lastPathComponent
 
+        guard !filename.isEmpty, filename != ".", filename != ".." else {
+            throw FrescoError.fileReadError("Invalid filename in path: \(filePath)")
+        }
+
         let data: Data
         do {
             data = try Data(contentsOf: fileURL)
