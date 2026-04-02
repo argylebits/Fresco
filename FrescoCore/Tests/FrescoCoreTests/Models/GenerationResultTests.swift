@@ -53,5 +53,9 @@ struct GenerationResultTests {
         if case .configurationError = config {} else {
             Issue.record("Expected configurationError")
         }
+        let fileWrite = FrescoError.fileWriteError("fail")
+        if case .fileWriteError = fileWrite {} else {
+            Issue.record("Expected fileWriteError")
+        }
     }
 }

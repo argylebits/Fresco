@@ -24,7 +24,7 @@ public struct GenerateService: Sendable {
                 atPath: directory,
                 withIntermediateDirectories: true
             )
-            try imageData.write(to: URL(fileURLWithPath: filePath))
+            try imageData.write(to: URL(fileURLWithPath: filePath), options: .atomic)
         } catch {
             throw FrescoError.fileWriteError("Failed to write image to \(filePath): \(error.localizedDescription)")
         }
