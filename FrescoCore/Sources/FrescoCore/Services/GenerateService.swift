@@ -8,6 +8,10 @@ public struct GenerateService: Sendable {
     }
 
     public func generate(prompt: String, slug: String, date: Date) async throws(FrescoError) -> GenerationResult {
+        guard slug.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) else {
+            throw FrescoError.configurationError("Invalid slug: \(slug)")
+        }
+
         let imageData = try await gemini.generateImage(prompt: prompt)
 
         let dateString = ISO8601DateFormatter.archiveKeyString(from: date)
@@ -21,7 +25,7 @@ public struct GenerateService: Sendable {
             )
             try imageData.write(to: URL(fileURLWithPath: filePath))
         } catch {
-            throw FrescoError.configurationError("Failed to write image to \(filePath): \(error.localizedDescription)")
+            throw FrescoError.fileWriteError("Failed to write image to \(filePath): \(error.localizedDescription)")
         }
 
         return GenerationResult(
