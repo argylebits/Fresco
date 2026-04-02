@@ -119,4 +119,34 @@ struct GenerateServiceTests {
             )
         }
     }
+
+    @Test("generate throws configurationError for empty slug")
+    func generateThrowsOnEmptySlug() async {
+        let service = GenerateService(
+            gemini: MockGeminiClient(result: Self.testImageData)
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.generate(
+                prompt: Self.testPrompt,
+                slug: "",
+                date: Self.testDate
+            )
+        }
+    }
+
+    @Test("generate throws configurationError for whitespace-only slug")
+    func generateThrowsOnWhitespaceSlug() async {
+        let service = GenerateService(
+            gemini: MockGeminiClient(result: Self.testImageData)
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.generate(
+                prompt: Self.testPrompt,
+                slug: "  ",
+                date: Self.testDate
+            )
+        }
+    }
 }

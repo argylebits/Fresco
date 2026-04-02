@@ -8,7 +8,8 @@ public struct GenerateService: Sendable {
     }
 
     public func generate(prompt: String, slug: String, date: Date) async throws(FrescoError) -> GenerationResult {
-        guard slug.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) else {
+        let slug = slug.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !slug.isEmpty, slug.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) else {
             throw FrescoError.configurationError("Invalid slug: \(slug)")
         }
 
