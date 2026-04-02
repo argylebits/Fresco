@@ -7,6 +7,10 @@ import Testing
 @testable import FrescoCLI
 
 struct GenerateCommandTests {
+    private func uniqueSlug() -> String {
+        "test-\(UUID().uuidString.prefix(8))"
+    }
+
     @Test func command_hasCorrectConfiguration() {
         #expect(GenerateCommand.configuration.commandName == "generate")
     }
@@ -32,9 +36,12 @@ struct GenerateCommandTests {
     }
 
     @Test func run_promptFlagOverridesConfiguredPrompt() async throws {
+        let slug = uniqueSlug()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let receivedPrompt = Mutex<String?>(nil)
         var cmd = try makeCommand(
-            args: ["--prompt", "override prompt"],
+            args: ["--slug", slug, "--prompt", "override prompt"],
             config: ["frescoPrompt": "configured prompt"],
             onGenerateImage: { prompt in receivedPrompt.withLock { $0 = prompt } }
         )
@@ -43,9 +50,12 @@ struct GenerateCommandTests {
     }
 
     @Test func run_appendAddsToConfiguredPrompt() async throws {
+        let slug = uniqueSlug()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let receivedPrompt = Mutex<String?>(nil)
         var cmd = try makeCommand(
-            args: ["--append", "extra text"],
+            args: ["--slug", slug, "--append", "extra text"],
             config: ["frescoPrompt": "base prompt"],
             onGenerateImage: { prompt in receivedPrompt.withLock { $0 = prompt } }
         )
@@ -54,9 +64,12 @@ struct GenerateCommandTests {
     }
 
     @Test func run_usesConfiguredPromptWhenNoFlags() async throws {
+        let slug = uniqueSlug()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let receivedPrompt = Mutex<String?>(nil)
         var cmd = try makeCommand(
-            args: [],
+            args: ["--slug", slug],
             config: ["frescoPrompt": "configured prompt"],
             onGenerateImage: { prompt in receivedPrompt.withLock { $0 = prompt } }
         )
@@ -86,11 +99,15 @@ struct GenerateCommandTests {
     }
 
     @Test func run_slugFlagOverridesConfig() async throws {
+        let flagSlug = "flag-\(uniqueSlug())"
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(flagSlug)") }
+
         var cmd = try makeCommand(
-            args: ["--slug", "flag-slug", "--prompt", "p"],
+            args: ["--slug", flagSlug, "--prompt", "p"],
             config: ["frescoSlug": "config-slug"]
         )
         try await cmd.run()
+        #expect(FileManager.default.fileExists(atPath: "/tmp/\(flagSlug)"))
     }
 
     // MARK: - Helpers
