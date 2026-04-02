@@ -10,6 +10,12 @@ public struct UploadService: Sendable {
     }
 
     public func upload(filePath: String, slug: String) async throws(FrescoError) -> UploadResult {
+        let slug = try SlugValidator.validate(slug)
+
+        guard let baseURL = URL(string: publicBaseURL), !publicBaseURL.isEmpty else {
+            throw FrescoError.configurationError("Invalid publicBaseURL: \(publicBaseURL)")
+        }
+
         let fileURL = URL(fileURLWithPath: filePath)
         let filename = fileURL.lastPathComponent
 
@@ -17,10 +23,10 @@ public struct UploadService: Sendable {
         do {
             data = try Data(contentsOf: fileURL)
         } catch {
-            throw FrescoError.fileWriteError("Failed to read file at \(filePath): \(error.localizedDescription)")
+            throw FrescoError.fileReadError("Failed to read file at \(filePath): \(error.localizedDescription)")
         }
 
-        let format = ImageFormat.detect(from: data)
+        let format = try ImageFormat.detect(from: data)
         let key = "\(slug)/\(filename)"
 
         try await r2.upload(
@@ -29,10 +35,6 @@ public struct UploadService: Sendable {
             contentType: format.contentType,
             cacheControl: "public, max-age=31536000"
         )
-
-        guard let baseURL = URL(string: publicBaseURL) else {
-            throw FrescoError.configurationError("Invalid publicBaseURL: \(publicBaseURL)")
-        }
 
         let publicURL = baseURL
             .appendingPathComponent(slug)
