@@ -66,17 +66,7 @@ struct GenerateCommand: AsyncParsableCommand {
     }
 
     private func makeDependencies() async throws -> Dependencies {
-        let envProvider: EnvironmentVariablesProvider
-        if FileManager.default.fileExists(atPath: ".env") {
-            do {
-                envProvider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
-            } catch {
-                throw FrescoError.configurationError("Failed to load .env: \(error.localizedDescription)")
-            }
-        } else {
-            envProvider = EnvironmentVariablesProvider()
-        }
-        let config = ConfigReader(provider: envProvider)
+        let config = try await loadConfigReader()
 
         let effectiveGeminiApiKey = geminiApiKey ?? config.string(forKey: "geminiApiKey")
         guard let effectiveGeminiApiKey else {

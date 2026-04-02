@@ -53,9 +53,17 @@ struct GenerationResultTests {
         if case .configurationError = config {} else {
             Issue.record("Expected configurationError")
         }
+        let fileRead = FrescoError.fileReadError("fail")
+        if case .fileReadError = fileRead {} else {
+            Issue.record("Expected fileReadError")
+        }
         let fileWrite = FrescoError.fileWriteError("fail")
         if case .fileWriteError = fileWrite {} else {
             Issue.record("Expected fileWriteError")
+        }
+        let unsupported = FrescoError.unsupportedImageFormat("fail")
+        if case .unsupportedImageFormat = unsupported {} else {
+            Issue.record("Expected unsupportedImageFormat")
         }
     }
 }

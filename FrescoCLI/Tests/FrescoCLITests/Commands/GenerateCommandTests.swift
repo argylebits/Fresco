@@ -123,7 +123,7 @@ struct GenerateCommandTests {
         var cmd = try GenerateCommand.parse(args)
         cmd.overrideDependencies = GenerateCommand.Dependencies(
             configReader: ConfigReader(provider: InMemoryProvider(values: fullConfig)),
-            gemini: MockCLIGeminiClient(result: Data([0xFF, 0xD8]), onGenerateImage: onGenerateImage)
+            gemini: MockCLIGeminiClient(result: Data([0xFF, 0xD8, 0xFF, 0xE0]), onGenerateImage: onGenerateImage)
         )
         return cmd
     }

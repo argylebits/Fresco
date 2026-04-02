@@ -8,16 +8,14 @@ public struct GenerateService: Sendable {
     }
 
     public func generate(prompt: String, slug: String, date: Date) async throws(FrescoError) -> GenerationResult {
-        let slug = slug.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !slug.isEmpty, slug.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) else {
-            throw FrescoError.configurationError("Invalid slug: \(slug)")
-        }
+        let slug = try SlugValidator.validate(slug)
 
         let imageData = try await gemini.generateImage(prompt: prompt)
 
+        let format = try ImageFormat.detect(from: imageData)
         let dateString = ISO8601DateFormatter.archiveKeyString(from: date)
         let directory = "/tmp/\(slug)"
-        let filePath = "\(directory)/\(dateString).jpg"
+        let filePath = "\(directory)/\(dateString).\(format.fileExtension)"
 
         do {
             try FileManager.default.createDirectory(
