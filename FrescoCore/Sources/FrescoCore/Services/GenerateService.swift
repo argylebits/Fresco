@@ -15,9 +15,10 @@ public struct GenerateService: Sendable {
 
         let imageData = try await gemini.generateImage(prompt: prompt)
 
+        let format = ImageFormat.detect(from: imageData)
         let dateString = ISO8601DateFormatter.archiveKeyString(from: date)
         let directory = "/tmp/\(slug)"
-        let filePath = "\(directory)/\(dateString).jpg"
+        let filePath = "\(directory)/\(dateString).\(format.fileExtension)"
 
         do {
             try FileManager.default.createDirectory(

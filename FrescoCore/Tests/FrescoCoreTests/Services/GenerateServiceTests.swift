@@ -105,6 +105,43 @@ struct GenerateServiceTests {
         #expect(FileManager.default.fileExists(atPath: result.filePath))
     }
 
+    @Test("generate uses .png extension for PNG data")
+    func generateUsesPngExtension() async throws {
+        let slug = uniqueSlug()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
+        let pngData = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        let service = GenerateService(
+            gemini: MockGeminiClient(result: pngData)
+        )
+
+        let result = try await service.generate(
+            prompt: Self.testPrompt,
+            slug: slug,
+            date: Self.testDate
+        )
+
+        #expect(result.filePath.hasSuffix(".png"))
+    }
+
+    @Test("generate uses .jpg extension for JPEG data")
+    func generateUsesJpgExtension() async throws {
+        let slug = uniqueSlug()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
+        let service = GenerateService(
+            gemini: MockGeminiClient(result: Self.testImageData)
+        )
+
+        let result = try await service.generate(
+            prompt: Self.testPrompt,
+            slug: slug,
+            date: Self.testDate
+        )
+
+        #expect(result.filePath.hasSuffix(".jpg"))
+    }
+
     @Test("generate throws configurationError for invalid slug")
     func generateThrowsOnInvalidSlug() async {
         let service = GenerateService(

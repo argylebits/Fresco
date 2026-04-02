@@ -10,8 +10,19 @@ struct UploadServiceTests {
     private static let testSlug = "my-wallpaper"
     private static let testPublicBaseURL = "https://cdn.example.com"
 
+    private func writeTempFile(slug: String = "test-upload-\(UUID().uuidString.prefix(8))") throws -> (String, String) {
+        let dir = "/tmp/\(slug)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let filePath = "\(dir)/2025-01-01-000000.jpg"
+        try Self.testImageData.write(to: URL(fileURLWithPath: filePath))
+        return (filePath, slug)
+    }
+
     @Test("upload sends data to R2 with correct key")
     func uploadSendsCorrectKey() async throws {
+        let (filePath, slug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let receivedKey = Mutex<String?>(nil)
         let r2 = MockR2Client(onUpload: { _, key in
             receivedKey.withLock { $0 = key }
@@ -20,7 +31,7 @@ struct UploadServiceTests {
         let service = UploadService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
 
         _ = try await service.upload(
-            filePath: "/tmp/my-wallpaper/2025-01-01-000000.jpg",
+            filePath: filePath,
             slug: Self.testSlug
         )
 
@@ -29,13 +40,16 @@ struct UploadServiceTests {
 
     @Test("upload returns correct public URL")
     func uploadReturnsPublicURL() async throws {
+        let (filePath, slug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let service = UploadService(
             r2: MockR2Client(),
             publicBaseURL: Self.testPublicBaseURL
         )
 
         let result = try await service.upload(
-            filePath: "/tmp/my-wallpaper/2025-01-01-000000.jpg",
+            filePath: filePath,
             slug: Self.testSlug
         )
 
@@ -44,7 +58,10 @@ struct UploadServiceTests {
     }
 
     @Test("upload throws when R2 fails")
-    func uploadThrowsOnR2Error() async {
+    func uploadThrowsOnR2Error() async throws {
+        let (filePath, slug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let service = UploadService(
             r2: MockR2Client(shouldThrow: .r2UploadError("upload failed")),
             publicBaseURL: Self.testPublicBaseURL
@@ -52,7 +69,7 @@ struct UploadServiceTests {
 
         await #expect(throws: FrescoError.self) {
             try await service.upload(
-                filePath: "/tmp/my-wallpaper/2025-01-01-000000.jpg",
+                filePath: filePath,
                 slug: Self.testSlug
             )
         }
@@ -74,7 +91,10 @@ struct UploadServiceTests {
     }
 
     @Test("upload throws on invalid publicBaseURL")
-    func uploadThrowsOnInvalidBaseURL() async {
+    func uploadThrowsOnInvalidBaseURL() async throws {
+        let (filePath, slug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(slug)") }
+
         let service = UploadService(
             r2: MockR2Client(),
             publicBaseURL: ""
@@ -82,7 +102,7 @@ struct UploadServiceTests {
 
         await #expect(throws: FrescoError.self) {
             try await service.upload(
-                filePath: "/tmp/my-wallpaper/2025-01-01-000000.jpg",
+                filePath: filePath,
                 slug: Self.testSlug
             )
         }
