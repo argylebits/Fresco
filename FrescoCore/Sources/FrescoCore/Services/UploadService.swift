@@ -12,7 +12,13 @@ public struct UploadService: Sendable {
     public func upload(filePath: String, slug: String) async throws(FrescoError) -> UploadResult {
         let slug = try SlugValidator.validate(slug)
 
-        guard let baseURL = URL(string: publicBaseURL), !publicBaseURL.isEmpty else {
+        guard
+            !publicBaseURL.isEmpty,
+            let baseURL = URL(string: publicBaseURL),
+            let scheme = baseURL.scheme?.lowercased(),
+            ["http", "https"].contains(scheme),
+            baseURL.host != nil
+        else {
             throw FrescoError.configurationError("Invalid publicBaseURL: \(publicBaseURL)")
         }
 

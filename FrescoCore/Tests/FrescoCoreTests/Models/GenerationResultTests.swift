@@ -61,5 +61,9 @@ struct GenerationResultTests {
         if case .fileWriteError = fileWrite {} else {
             Issue.record("Expected fileWriteError")
         }
+        let unsupported = FrescoError.unsupportedImageFormat("fail")
+        if case .unsupportedImageFormat = unsupported {} else {
+            Issue.record("Expected unsupportedImageFormat")
+        }
     }
 }
