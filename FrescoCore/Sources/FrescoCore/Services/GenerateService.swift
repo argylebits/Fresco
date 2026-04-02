@@ -2,41 +2,38 @@ import Foundation
 
 public struct GenerateService: Sendable {
     public let gemini: any GeminiClientProtocol
-    public let r2: any R2ClientProtocol
-    public let publicBaseURL: String
 
-    public init(gemini: any GeminiClientProtocol, r2: any R2ClientProtocol, publicBaseURL: String) {
+    public init(gemini: any GeminiClientProtocol) {
         self.gemini = gemini
-        self.r2 = r2
-        self.publicBaseURL = publicBaseURL
     }
 
     public func generate(prompt: String, slug: String, date: Date) async throws(FrescoError) -> GenerationResult {
-        let imageData = try await gemini.generateImage(prompt: prompt)
-
-        let archiveDateString = ISO8601DateFormatter.archiveKeyString(from: date)
-        let archiveKey = "\(slug)/\(archiveDateString).jpg"
-        try await r2.upload(
-            data: imageData,
-            key: archiveKey,
-            contentType: "image/jpeg",
-            cacheControl: "public, max-age=31536000"
-        )
-
-        guard let baseURL = URL(string: publicBaseURL) else {
-            throw FrescoError.configurationError("Invalid publicBaseURL: \(publicBaseURL)")
+        let slug = slug.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !slug.isEmpty, slug.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) else {
+            throw FrescoError.configurationError("Invalid slug: \(slug)")
         }
 
-        let publicURL = baseURL
-            .appendingPathComponent(slug)
-            .appendingPathComponent("\(archiveDateString).jpg")
+        let imageData = try await gemini.generateImage(prompt: prompt)
+
+        let dateString = ISO8601DateFormatter.archiveKeyString(from: date)
+        let directory = "/tmp/\(slug)"
+        let filePath = "\(directory)/\(dateString).jpg"
+
+        do {
+            try FileManager.default.createDirectory(
+                atPath: directory,
+                withIntermediateDirectories: true
+            )
+            try imageData.write(to: URL(fileURLWithPath: filePath), options: .atomic)
+        } catch {
+            throw FrescoError.fileWriteError("Failed to write image to \(filePath): \(error.localizedDescription)")
+        }
 
         return GenerationResult(
             date: date,
             prompt: prompt,
             imageData: imageData,
-            r2Key: archiveKey,
-            publicURL: publicURL
+            filePath: filePath
         )
     }
 }

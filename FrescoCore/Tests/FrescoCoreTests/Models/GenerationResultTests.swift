@@ -6,34 +6,29 @@ struct GenerationResultTests {
     @Test func generationResult_storesAllProperties() {
         let date = Date()
         let data = Data([1, 2, 3])
-        let url = URL(string: "https://example.com/test/image.jpg")!
 
         let result = GenerationResult(
             date: date,
             prompt: "a test prompt",
             imageData: data,
-            r2Key: "test/image.jpg",
-            publicURL: url
+            filePath: "/tmp/test/2025-01-01-000000.jpg"
         )
 
         #expect(result.date == date)
         #expect(result.prompt == "a test prompt")
         #expect(result.imageData == data)
-        #expect(result.r2Key == "test/image.jpg")
-        #expect(result.publicURL == url)
+        #expect(result.filePath == "/tmp/test/2025-01-01-000000.jpg")
     }
 
     @Test func generationResult_codableRoundTrip() throws {
         let date = Date()
         let data = Data([1, 2, 3])
-        let url = URL(string: "https://example.com/test/image.jpg")!
 
         let original = GenerationResult(
             date: date,
             prompt: "a test prompt",
             imageData: data,
-            r2Key: "test/image.jpg",
-            publicURL: url
+            filePath: "/tmp/test/2025-01-01-000000.jpg"
         )
 
         let encoded = try JSONEncoder().encode(original)
@@ -42,8 +37,7 @@ struct GenerationResultTests {
         #expect(decoded.date == date)
         #expect(decoded.prompt == "a test prompt")
         #expect(decoded.imageData == data)
-        #expect(decoded.r2Key == "test/image.jpg")
-        #expect(decoded.publicURL == url)
+        #expect(decoded.filePath == "/tmp/test/2025-01-01-000000.jpg")
     }
 
     @Test func frescoError_casesAreDistinct() {
@@ -58,6 +52,10 @@ struct GenerationResultTests {
         }
         if case .configurationError = config {} else {
             Issue.record("Expected configurationError")
+        }
+        let fileWrite = FrescoError.fileWriteError("fail")
+        if case .fileWriteError = fileWrite {} else {
+            Issue.record("Expected fileWriteError")
         }
     }
 }
