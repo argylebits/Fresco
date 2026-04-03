@@ -44,6 +44,7 @@ Add these steps after the generate-and-upload step in any workflow above.
 - `steps-update-readme.yml` — replaces the image line after a marker in your README
 - `steps-update-gallery.yml` — appends a row to a markdown table
 - `steps-latest-alias.yml` — copies the image to a stable `latest.{ext}` URL on R2 using `fresco remote copy` (extension is preserved from the uploaded filename), then purges the GitHub camo cache
+- `steps-latest-extensionless.yml` — same as above but copies to an extensionless `latest` URL, avoiding any format/extension mismatch (R2 serves the correct `Content-Type` from the source object's metadata)
 
 ## Capturing the URL
 
@@ -52,7 +53,10 @@ The step snippets expect the upload URL as a GitHub Actions output. Set up your 
 ```yaml
 - name: Generate and upload
   id: fresco
-  run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
+  run: |
+    IMAGE=$(fresco generate)
+    URL=$(fresco upload "$IMAGE")
+    echo "url=$URL" >> "$GITHUB_OUTPUT"
   env:
     # ... all secrets
 ```
@@ -63,7 +67,7 @@ The readme snippet uses an HTML comment as a marker. For example:
 
 ```markdown
 <!-- Fresco image -->
-![Fresco](https://your-r2-domain.dev/your-slug/latest.png)
+![Fresco](https://your-r2-domain.dev/your-slug/latest)
 ```
 
 The marker can be whatever you want — just keep it in sync with the `sed` pattern in your workflow.

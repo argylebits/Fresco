@@ -1,8 +1,9 @@
-# Copy the uploaded image to a stable URL like:
-#   https://your-r2-domain.dev/your-slug/latest.{ext}
+# Copy the uploaded image to a stable, extensionless URL like:
+#   https://your-r2-domain.dev/your-slug/latest
 #
-# This lets you reference a fixed URL in your README that always shows
-# the most recent image. Add these steps after the "Generate and upload" step.
+# Using an extensionless destination avoids any mismatch between the
+# URL and the actual image format. R2 serves the correct Content-Type
+# from the source object's metadata, so browsers render it correctly.
 #
 # The generate-and-upload step must capture the URL as an output:
 #
@@ -31,7 +32,7 @@
         run: |
           URL="${{ steps.fresco.outputs.url }}"
           FILENAME=$(basename "$URL")
-          fresco remote copy "$FILENAME" "latest.${FILENAME##*.}"
+          fresco remote copy "$FILENAME" latest
         env:
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
           R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}

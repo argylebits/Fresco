@@ -4,7 +4,10 @@
 #
 #   - name: Generate and upload
 #     id: fresco
-#     run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
+#     run: |
+#       IMAGE=$(fresco generate)
+#       URL=$(fresco upload "$IMAGE")
+#       echo "url=$URL" >> "$GITHUB_OUTPUT"
 #     env: ...
 #
 # Your workflow must include these permissions:
@@ -13,11 +16,16 @@
 #     contents: write
 #     pull-requests: write
 
-      - name: Append gallery entry
+      - name: Add gallery entry (newest first)
         run: |
           URL="${{ steps.fresco.outputs.url }}"
-          DATE="$(date +%Y-%m-%d)"
-          echo "| ${DATE} | ![]($URL) |" >> gallery.md
+          DATE="$(date -u +%Y-%m-%d)"
+          ROW="| ${DATE} | ![]($URL) |"
+          awk -v row="$ROW" '
+            { print }
+            /^\|------\|-------\|$/ { print row }
+          ' gallery.md > gallery.md.tmp
+          mv gallery.md.tmp gallery.md
 
       - name: Open PR with update
         run: |
