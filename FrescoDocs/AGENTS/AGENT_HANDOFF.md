@@ -22,7 +22,7 @@ Create a GitHub milestone called "Project Setup" with a tracking issue that cove
    - `.github/ISSUE_TEMPLATE/grouping.md` (from `AGENTS/ISSUE_TEMPLATE_GROUPING.md`)
    - `.github/ISSUE_TEMPLATE/sub-issue.md` (from `AGENTS/ISSUE_TEMPLATE_SUBISSUE.md`)
    - `.github/PULL_REQUEST_TEMPLATE.md` (from `AGENTS/PULL_REQUEST_TEMPLATE.md`)
-   - All product docs in `docs/`
+   - All product docs in `FrescoDocs/`
    - `.gitignore`, `README.md`, `gallery.md`, `fresco.template.env` at the repo root
 
 2. **Branch protections** — Enable branch protections on main requiring all CI status checks to pass before merge.
@@ -37,7 +37,7 @@ Create a GitHub milestone called "Project Setup" with a tracking issue that cove
 
 The `fresco` CLI tool — Phase 1 of the Fresco project. A composable Swift 6 command-line tool that generates images using the Google Gemini Imagen API and publishes them to Cloudflare R2.
 
-The full product vision and architecture are in `docs/VISION.md` and `docs/ARCHITECTURE.md`. Read those too.
+The full product vision and architecture are in `FrescoDocs/VISION.md` and `FrescoDocs/ARCHITECTURE.md`. Read those too.
 
 ---
 
@@ -75,7 +75,7 @@ Fresco/
 │   │   └── workflows/
 │   │       ├── fresco.yml           ✓ written (daily generation) → install to .github/workflows/
 │   │       └── ci.yml               ✓ written (build + test on all PRs) → install to .github/workflows/
-│   └── docs/
+│   └── FrescoDocs/
 │       ├── VISION.md                ✓ written
 │       ├── CLI.md                   ✓ written
 │       ├── ARCHITECTURE.md          ✓ written
@@ -121,7 +121,7 @@ struct GenerationResult: Sendable, Codable {
     let date: Date
     let prompt: String
     let imageData: Data
-    let filePath: String    // e.g. "/tmp/fresco/2026-03-23-141039.jpg"
+    let filePath: String    // e.g. "/tmp/my-slug/2026-03-23-141039.jpg"
 }
 ```
 
@@ -249,7 +249,7 @@ Use swift-configuration's `InMemoryProvider` for test configuration in CLI tests
 
 ## What NOT to change
 
-- Any file in `docs/` — these are the spec, not the implementation
+- Any file in `FrescoDocs/` — these are the spec, not the implementation
 - `gallery.md` — only append to this, never rewrite the header
 - `README.md` — only modify the Fresco image line, not the overall structure
 - `FrescoCore/Package.swift` and `FrescoCLI/Package.swift` — only add new targets or dependencies if genuinely needed
