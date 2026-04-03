@@ -62,9 +62,11 @@ jobs:
           URL="${{ steps.fresco.outputs.url }}"
           DATE="$(date -u +%Y-%m-%d)"
           ROW="| ${DATE} | ![]($URL) |"
-          sed -i.bak "/^|------|-------|$/a\\
-          $ROW" gallery.md
-          rm -f gallery.md.bak
+          awk -v row="$ROW" '
+            { print }
+            /^\|------\|-------\|$/ { print row }
+          ' gallery.md > gallery.md.tmp
+          mv gallery.md.tmp gallery.md
 
       - name: Open PR with gallery update
         run: |
