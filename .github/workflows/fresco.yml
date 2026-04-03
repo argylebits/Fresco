@@ -9,6 +9,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: fresco
+  cancel-in-progress: true
+
 jobs:
   fresco:
     name: Generate and publish
