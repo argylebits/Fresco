@@ -15,15 +15,13 @@ Fresco/
 │   ├── Sources/FrescoCLI/
 │   └── Tests/FrescoCLITests/
 ├── FrescoDocs/                  design docs and templates
-├── fresco.template.env           example configuration
+├── Examples/                    GitHub Actions workflow examples
+├── fresco.template.env          example configuration
 ├── .github/
 │   └── workflows/
-│       ├── fresco.yml           daily image generation
-│       └── ci.yml               build and test on push
-├── docs/
-├── gallery.md
-└── homebrew/
-    └── fresco.rb                Homebrew formula
+│       ├── ci.yml               build and test on push
+│       └── release.yml          release automation
+└── gallery.md
 ```
 
 ---
@@ -45,13 +43,16 @@ R2_BUCKET=fresco-images
 R2_PUBLIC_BASE_URL=https://pub-xxxx.r2.dev
 ```
 
-The provider hierarchy in code:
+The CLI loads config via a single `EnvironmentVariablesProvider` from swift-configuration, which reads both shell environment variables and a `.env` file if present:
 
 ```swift
-let config = ConfigReader(providers: [
-    EnvironmentVariablesProvider(),   // env vars (CI, shell)
-    // .env file provider if needed
-])
+let envProvider: EnvironmentVariablesProvider
+if FileManager.default.fileExists(atPath: ".env") {
+    envProvider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+} else {
+    envProvider = EnvironmentVariablesProvider()
+}
+let config = ConfigReader(provider: envProvider)
 ```
 
 In GitHub Actions, these values come from repository secrets. Locally, they live in `.env` (gitignored).
@@ -155,7 +156,7 @@ Issues an S3 CopyObject request to copy an object within the bucket.
 
 ### Validators
 
-**`SlugValidator`** — validates project slugs (alphanumeric, hyphens, no leading/trailing hyphens).
+**`SlugValidator`** — validates project slugs (alphanumeric, hyphens, underscores).
 
 **`FilenameValidator`** — validates destination filenames (rejects path traversal, slashes).
 
@@ -181,16 +182,16 @@ The public URL pattern is always:
 
 ## Repository/protocol/mock pattern
 
-All external dependencies (Gemini, R2, the Fresco server) are behind protocols. Tests use in-memory mocks. No network calls in the test suite.
+All external dependencies (Gemini, R2) are behind protocols. Tests use mock implementations that live in test targets (not in FrescoCore). No network calls in the test suite.
 
 ```
 GeminiClientProtocol
     ├── GeminiClient          (production — URLSession)
-    └── MockGeminiClient      (tests — returns fixed data or throws)
+    └── MockGeminiClient      (tests — configurable result or error)
 
 R2ClientProtocol
     ├── R2Client              (production — S3-compatible)
-    └── MockR2Client          (tests — in-memory store)
+    └── MockR2Client          (tests — configurable error, optional callbacks)
 ```
 
-For configuration in tests, use swift-configuration's `InMemoryProvider` to supply test values without touching the environment or files.
+For configuration in CLI tests, use swift-configuration's `InMemoryProvider` to supply test values without touching the environment or files.

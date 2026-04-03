@@ -71,6 +71,7 @@ Browse the [Gallery](gallery.md) for the full image history.
 | [CLI Reference](CLI.md) | Every command, flag, and environment variable |
 | [Prompt Configuration](PROMPT_CONFIG.md) | How to write great prompts |
 | [Architecture](ARCHITECTURE.md) | How it all fits together, per phase |
+| [Development Guide](AGENTS/DEVELOPMENT.md) | Local setup, testing, contributing |
 | [Deployment Guide](DEPLOYMENT.md) | Self-hosting the Fresco server (Phase 2) |
 
 ---

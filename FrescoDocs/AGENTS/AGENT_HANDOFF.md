@@ -35,7 +35,7 @@ Create a GitHub milestone called "Project Setup" with a tracking issue that cove
 
 ## What you are building
 
-The `fresco` CLI tool — Phase 1 of the Fresco project. A Swift 6 command-line tool that generates a daily AI image using the Google Gemini Imagen API, uploads it to Cloudflare R2, and maintains a `gallery.md` file in the project repo.
+The `fresco` CLI tool — Phase 1 of the Fresco project. A composable Swift 6 command-line tool that generates images using the Google Gemini Imagen API and publishes them to Cloudflare R2.
 
 The full product vision and architecture are in `docs/VISION.md` and `docs/ARCHITECTURE.md`. Read those too.
 
@@ -111,35 +111,51 @@ Locally these live in `.env` (gitignored). In CI they come from GitHub Actions s
 
 ### FrescoCore
 
-All shared logic. No UI, no argument parsing, no file system assumptions.
+All shared logic. No UI, no argument parsing.
 
 **Models:**
 
-`GenerationResult` — result of one generation attempt
+`GenerationResult` — result of image generation
 ```swift
-struct GenerationResult: Sendable {
+struct GenerationResult: Sendable, Codable {
     let date: Date
     let prompt: String
     let imageData: Data
-    let r2Key: String       // e.g. "fresco/2026-03-23.jpg"
-    let publicURL: URL      // e.g. https://pub-xxx.r2.dev/fresco/2026-03-23.jpg
+    let filePath: String    // e.g. "/tmp/fresco/2026-03-23-141039.jpg"
+}
+```
+
+`UploadResult` — result of upload or copy
+```swift
+struct UploadResult: Sendable, Codable {
+    let r2Key: String       // e.g. "fresco/2026-03-23-141039.jpg"
+    let publicURL: URL      // e.g. https://pub-xxx.r2.dev/fresco/2026-03-23-141039.jpg
 }
 ```
 
 **Protocols and implementations:**
 
-`GeminiClientProtocol` + `GeminiClient` — calls Gemini Imagen API, returns JPEG `Data`. URLSession only, no third-party HTTP client.
+`GeminiClientProtocol` + `GeminiClient` — calls Gemini Imagen API, returns image `Data`. URLSession only, no third-party HTTP client.
 
 `R2ClientProtocol` + `R2Client` — S3-compatible client for Cloudflare R2. Uses AWS Signature V4. Supports upload and server-side copy. No third-party SDK.
 
-`GenerationProviderProtocol` + `DirectGenerationProvider` — orchestrates Gemini + R2 for standalone mode. This is what the CLI calls.
+**Services:**
 
-`ServerGenerationProvider` — stub only for Phase 1. Throws `FrescoError.serverModeNotImplemented`. Will be implemented in Phase 2.
+`GenerateService` — calls `GeminiClient`, detects image format, writes to `/tmp/{slug}/{timestamp}.{ext}`, returns `GenerationResult`.
 
-**Mock implementations** (in `FrescoCore`, used by tests):
-- `MockGeminiClient` — configurable behaviour (success with data, or throws)
-- `MockR2Client` — in-memory store, tracks uploaded keys
-- `MockGenerationProvider` — returns fixed `GenerationResult` or throws
+`UploadService` — reads a local file, validates the filename, uploads via `R2Client`, returns `UploadResult`.
+
+`CopyService` — issues S3 CopyObject via `R2Client`, returns `UploadResult`.
+
+**Validators:**
+
+`SlugValidator` — validates project slugs (alphanumeric, hyphens, underscores).
+
+`FilenameValidator` — validates filenames (rejects path traversal and slashes).
+
+**Mock implementations** (in test targets, not FrescoCore):
+- `MockGeminiClient` — configurable result or error
+- `MockR2Client` — configurable error, optional callbacks for upload/copy
 
 ---
 
@@ -205,16 +221,17 @@ The public URL uses the R2 public bucket URL, not the S3-compatible endpoint:
 
 ---
 
-## Tests to write
+## Tests
 
 **FrescoCoreTests:**
 
-`DirectGenerationProviderTests`
-- Success: Gemini returns data, R2 receives two uploads, result has correct URL
-- Gemini failure: error propagated, R2 not called
-- R2 failure: error propagated after Gemini succeeds
+- `GenerateServiceTests` — Gemini returns data, image written to `/tmp/{slug}/`, result has correct path; Gemini failure propagated
+- `UploadServiceTests` — file read, upload via R2Client, correct public URL; destination filename override; invalid filename rejected
+- `CopyServiceTests` — copy via R2Client, correct public URL; invalid filenames rejected
+- `R2ClientTests` — request building for upload and copy operations
+- `GeminiClientTests` — request/response handling
 
-Use swift-configuration's `InMemoryProvider` for test configuration.
+Use swift-configuration's `InMemoryProvider` for test configuration in CLI tests.
 
 ---
 
@@ -223,9 +240,9 @@ Use swift-configuration's `InMemoryProvider` for test configuration.
 - [ ] `swift build` succeeds with no errors
 - [ ] `swift test` passes — all tests green
 - [ ] `fresco --help` lists all commands
-- [ ] `fresco init` creates .env, workflow, updates README, sets GitHub secrets (interactive and non-interactive modes)
-- [ ] `fresco generate` calls Gemini, uploads two objects to R2, appends to gallery.md
-- [ ] Gallery.md has correct format after generation
+- [ ] `fresco generate` calls Gemini, writes image to `/tmp/{slug}/`, prints file path
+- [ ] `fresco upload` uploads to R2, prints public URL
+- [ ] `fresco remote copy` copies within R2, prints public URL
 - [ ] Credentials never appear in any committed file
 
 ---
@@ -234,5 +251,5 @@ Use swift-configuration's `InMemoryProvider` for test configuration.
 
 - Any file in `docs/` — these are the spec, not the implementation
 - `gallery.md` — only append to this, never rewrite the header
-- `README.md` — only modify via `fresco init`, not manually
+- `README.md` — only modify the Fresco image line, not the overall structure
 - `FrescoCore/Package.swift` and `FrescoCLI/Package.swift` — only add new targets or dependencies if genuinely needed
