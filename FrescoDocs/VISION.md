@@ -116,7 +116,7 @@ That's it. The image URL never changes. The image does.
 - [x] `fresco upload` — publish images to Cloudflare R2
 - [x] `fresco remote copy` — server-side copy for stable URLs
 - [ ] GitHub Actions workflow generation
-- [ ] Homebrew tap (`brew install argylebits/fresco`)
+- [ ] Homebrew tap (`brew install argylebits/tap/fresco`)
 - [ ] Fresco using itself — banner + gallery live
 
 ### Soon (Phase 1 polish)
