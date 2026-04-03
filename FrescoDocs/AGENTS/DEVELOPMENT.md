@@ -230,7 +230,7 @@ func test_generate_success() async throws {
         date: .now
     )
 
-    XCTAssertTrue(result.filePath.hasSuffix(".png"))
+    XCTAssertTrue(result.filePath.hasSuffix(".jpg"))
 }
 ```
 
