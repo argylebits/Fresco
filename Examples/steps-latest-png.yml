@@ -1,5 +1,5 @@
 # Copy the uploaded image to a stable URL like:
-#   https://your-r2-domain.dev/your-slug/latest.jpg
+#   https://your-r2-domain.dev/your-slug/latest.png
 #
 # This lets you reference a fixed URL in your README that always shows
 # the most recent image. Add these steps after the "Generate and upload" step.
@@ -17,18 +17,18 @@
 #   GitHub picks up the new image.
 #
 #   To set CAMO_IMAGE_URL:
-#     1. Push your README with the latest.jpg image reference
+#     1. Push your README with the latest.png image reference
 #     2. Open your README on GitHub
 #     3. Right-click the image → "Copy image address"
 #     4. Save that URL as a repository variable named CAMO_IMAGE_URL
 #
 #   See: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-anonymized-urls#removing-an-image-from-camos-cache
 
-      - name: Copy to latest.jpg
+      - name: Copy to latest.png
         run: |
           URL="${{ steps.fresco.outputs.url }}"
           FILENAME=$(basename "$URL")
-          fresco remote copy "$FILENAME" latest.jpg
+          fresco remote copy "$FILENAME" latest.png
         env:
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
           R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}

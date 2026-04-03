@@ -28,7 +28,7 @@ swift test --package-path FrescoCLI
 # Build and run
 swift run --package-path FrescoCLI fresco --help
 swift run --package-path FrescoCLI fresco generate
-swift run --package-path FrescoCLI fresco upload /tmp/my-project/image.jpg
+swift run --package-path FrescoCLI fresco upload /tmp/my-project/image.png
 ```
 
 To test locally you need a `.env` file with valid credentials. Copy `fresco.template.env` to `.env` and fill in your values.
@@ -230,7 +230,7 @@ func test_generate_success() async throws {
         date: .now
     )
 
-    XCTAssertTrue(result.filePath.hasSuffix(".jpg"))
+    XCTAssertTrue(result.filePath.hasSuffix(".png"))
 }
 ```
 

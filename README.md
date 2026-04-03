@@ -38,7 +38,7 @@ fresco upload $(fresco generate)
 
 ### `fresco generate`
 
-Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path.
+Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path. The file extension is auto-detected from the image data (PNG or JPEG).
 
 ```bash
 fresco generate                                          # use configured prompt
@@ -51,8 +51,8 @@ fresco generate --append "Celebrating release v2.1.0"    # extend configured pro
 Uploads a local image to R2. Prints the public URL.
 
 ```bash
-fresco upload /tmp/my-project/2026-04-02-120000.jpg             # keep original filename
-fresco upload /tmp/my-project/2026-04-02-120000.jpg latest.jpg  # upload as latest.jpg
+fresco upload /tmp/my-project/2026-04-02-120000.png             # keep original filename
+fresco upload /tmp/my-project/2026-04-02-120000.png latest.png  # upload as latest.png
 ```
 
 R2 key and public URL are composed as:
@@ -67,7 +67,7 @@ Public URL: {R2_PUBLIC_BASE_URL}/{FRESCO_SLUG}/{filename}
 Copies an object within R2 (server-side, no download).
 
 ```bash
-fresco remote copy 2026-04-02-120000.jpg latest.jpg
+fresco remote copy 2026-04-02-120000.png latest.png
 ```
 
 ### Composable workflows
@@ -85,12 +85,12 @@ xdg-open $(fresco generate)
 fresco upload $(fresco generate)
 
 # Generate and upload as a specific filename
-fresco upload $(fresco generate) latest.jpg
+fresco upload $(fresco generate) latest.png
 
 # Generate, upload dated, then alias to latest
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" latest.jpg
+fresco remote copy "$(basename "$IMAGE")" latest.png
 ```
 
 Use `basename` to bridge a local file path to a remote filename — `fresco upload` prints a URL, but `fresco remote copy` takes filenames within your slug's namespace.
@@ -165,7 +165,7 @@ on:
         description: 'Override the default prompt'
 ```
 
-There are also step snippets for updating a README image, maintaining a gallery, and copying to a stable `latest.jpg` URL. See [`Examples/SETUP.md`](Examples/SETUP.md) for the full list and setup instructions.
+There are also step snippets for updating a README image, maintaining a gallery, and copying to a stable `latest.png` URL. See [`Examples/SETUP.md`](Examples/SETUP.md) for the full list and setup instructions.
 
 ---
 

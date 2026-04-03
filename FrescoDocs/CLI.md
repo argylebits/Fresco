@@ -12,7 +12,7 @@ brew install argylebits/tap/fresco
 
 ### `fresco generate`
 
-Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path.
+Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path. The file extension is auto-detected from the image data (PNG or JPEG).
 
 ```bash
 fresco generate
@@ -21,7 +21,7 @@ fresco generate
 **What it does:**
 1. Reads configuration from environment variables (via swift-configuration)
 2. Calls Gemini Imagen API with the configured prompt (or overridden/appended prompt)
-3. Writes the image to `/tmp/{slug}/{timestamp}.{ext}`
+3. Detects the image format from the data (PNG or JPEG) and writes to `/tmp/{slug}/{timestamp}.{ext}`
 4. Prints the file path to stdout
 
 **Flags:**
@@ -83,10 +83,10 @@ fresco upload <file> [destination]
 
 ```bash
 # Upload with original filename
-fresco upload /tmp/my-project/2026-04-02-120000.jpg
+fresco upload /tmp/my-project/2026-04-02-120000.png
 
 # Upload as a specific filename
-fresco upload /tmp/my-project/2026-04-02-120000.jpg latest.jpg
+fresco upload /tmp/my-project/2026-04-02-120000.png latest.png
 ```
 
 ---
@@ -124,8 +124,8 @@ fresco remote copy <source> <destination>
 **Examples:**
 
 ```bash
-# Alias a dated image to latest.jpg
-fresco remote copy 2026-04-02-120000.jpg latest.jpg
+# Alias a dated image to latest.png
+fresco remote copy 2026-04-02-120000.png latest.png
 ```
 
 ---
@@ -145,12 +145,12 @@ xdg-open $(fresco generate)
 fresco upload $(fresco generate)
 
 # Generate and upload as a specific filename
-fresco upload $(fresco generate) latest.jpg
+fresco upload $(fresco generate) latest.png
 
 # Generate, upload dated, then alias to latest
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" latest.jpg
+fresco remote copy "$(basename "$IMAGE")" latest.png
 ```
 
 **Event-driven usage:** The commands can be called from any workflow trigger. For example, to generate a release image:

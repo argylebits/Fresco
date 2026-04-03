@@ -167,9 +167,9 @@ Issues an S3 CopyObject request to copy an object within the bucket.
 ```
 {bucket}/
 └── {slug}/
-    ├── latest.jpg                ← stable alias (via fresco remote copy)
-    ├── 2026-03-23-141039.jpg     ← permanent archive
-    ├── 2026-03-22-030000.jpg
+    ├── latest.png                ← stable alias (via fresco remote copy)
+    ├── 2026-03-23-141039.png     ← permanent archive
+    ├── 2026-03-22-030000.png
     └── ...
 ```
 

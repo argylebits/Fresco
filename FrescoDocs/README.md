@@ -4,7 +4,7 @@
 
 Fresco is a composable CLI for generating images with the Google Gemini Imagen API and publishing them to Cloudflare R2. Drop the URL into any README, website, or app — it updates itself.
 
-![Daily Fresco](https://pub-placeholder.r2.dev/fresco/latest.jpg)
+![Daily Fresco](https://pub-placeholder.r2.dev/fresco/latest.png)
 
 ---
 
@@ -18,16 +18,16 @@ fresco generate
 fresco upload $(fresco generate)
 
 # Alias the uploaded image to a stable URL
-fresco remote copy 2026-04-02-120000.jpg latest.jpg
+fresco remote copy 2026-04-02-120000.png latest.png
 ```
 
 Your project points at the stable URL:
 
 ```markdown
-![Daily Image](https://pub-xxxx.r2.dev/your-project/latest.jpg)
+![Daily Image](https://pub-xxxx.r2.dev/your-project/latest.png)
 ```
 
-A scheduled workflow generates, uploads, and copies to `latest.jpg` — the URL never changes.
+A scheduled workflow generates, uploads, and copies to `latest.png` — the URL never changes.
 
 ---
 

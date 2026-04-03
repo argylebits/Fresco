@@ -15,7 +15,7 @@ Static hero images get stale. Rotating them manually is tedious. AI image genera
 ```bash
 fresco generate                              # create an image
 fresco upload $(fresco generate)             # create and publish
-fresco remote copy dated.jpg latest.jpg      # update the stable URL
+fresco remote copy dated.png latest.png      # update the stable URL
 ```
 
 That's it. The image URL never changes. The image does.
@@ -29,7 +29,7 @@ That's it. The image URL never changes. The image does.
 **How it works:**
 - `fresco generate` calls Gemini Imagen and writes the image locally
 - `fresco upload` publishes a local image to Cloudflare R2
-- `fresco remote copy` aliases a dated image to a stable filename (e.g. `latest.jpg`)
+- `fresco remote copy` aliases a dated image to a stable filename (e.g. `latest.png`)
 - GitHub Actions composes these commands on a daily cron schedule
 - The project's README points to a stable R2 URL
 
