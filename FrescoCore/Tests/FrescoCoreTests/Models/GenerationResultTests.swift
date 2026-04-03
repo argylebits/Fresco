@@ -42,13 +42,13 @@ struct GenerationResultTests {
 
     @Test func frescoError_casesAreDistinct() {
         let gemini = FrescoError.geminiError("fail")
-        let r2 = FrescoError.r2UploadError("fail")
+        let r2 = FrescoError.r2Error("fail")
         let config = FrescoError.configurationError("fail")
         if case .geminiError = gemini {} else {
             Issue.record("Expected geminiError")
         }
-        if case .r2UploadError = r2 {} else {
-            Issue.record("Expected r2UploadError")
+        if case .r2Error = r2 {} else {
+            Issue.record("Expected r2Error")
         }
         if case .configurationError = config {} else {
             Issue.record("Expected configurationError")

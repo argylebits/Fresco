@@ -6,6 +6,6 @@ struct Fresco: AsyncParsableCommand {
         commandName: "fresco",
         abstract: "AI image generation CLI",
         version: "Fresco v\(appVersion)",
-        subcommands: [GenerateCommand.self, UploadCommand.self]
+        subcommands: [GenerateCommand.self, UploadCommand.self, RemoteCommand.self]
     )
 }
