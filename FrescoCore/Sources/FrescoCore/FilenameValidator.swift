@@ -7,8 +7,7 @@ public enum FilenameValidator {
             !trimmed.isEmpty,
             trimmed != ".",
             trimmed != "..",
-            !trimmed.contains("/"),
-            !trimmed.contains("..")
+            !trimmed.contains("/")
         else {
             throw FrescoError.configurationError("Invalid filename: \(filename)")
         }
