@@ -44,6 +44,7 @@ Add these steps after the generate-and-upload step in any workflow above.
 - `steps-update-readme.yml` — replaces the image line after a marker in your README
 - `steps-update-gallery.yml` — appends a row to a markdown table
 - `steps-latest-alias.yml` — copies the image to a stable `latest.{ext}` URL on R2 using `fresco remote copy` (extension is preserved from the uploaded filename), then purges the GitHub camo cache
+- `steps-latest-extensionless.yml` — same as above but copies to an extensionless `latest` URL, avoiding any format/extension mismatch (R2 serves the correct `Content-Type` from the source object's metadata)
 
 ## Capturing the URL
 

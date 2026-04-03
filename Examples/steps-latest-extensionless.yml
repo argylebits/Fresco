@@ -1,0 +1,46 @@
+# Copy the uploaded image to a stable, extensionless URL like:
+#   https://your-r2-domain.dev/your-slug/latest
+#
+# Using an extensionless destination avoids any mismatch between the
+# URL and the actual image format. R2 serves the correct Content-Type
+# from the source object's metadata, so browsers render it correctly.
+#
+# The generate-and-upload step must capture the URL as an output:
+#
+#   - name: Generate and upload
+#     id: fresco
+#     run: |
+#       IMAGE=$(fresco generate)
+#       URL=$(fresco upload "$IMAGE")
+#       echo "url=$URL" >> "$GITHUB_OUTPUT"
+#     env: ...
+#
+# GitHub camo cache:
+#   GitHub proxies external images through camo.githubusercontent.com and
+#   caches them aggressively. The purge step below clears the cache so
+#   GitHub picks up the new image.
+#
+#   To set CAMO_IMAGE_URL:
+#     1. Push your README with the latest image reference
+#     2. Open your README on GitHub
+#     3. Right-click the image → "Copy image address"
+#     4. Save that URL as a repository variable named CAMO_IMAGE_URL
+#
+#   See: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-anonymized-urls#removing-an-image-from-camos-cache
+
+      - name: Copy to stable latest URL
+        run: |
+          URL="${{ steps.fresco.outputs.url }}"
+          FILENAME=$(basename "$URL")
+          fresco remote copy "$FILENAME" latest
+        env:
+          FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
+          R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:      ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY:  ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET:             ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_BASE_URL:    ${{ secrets.R2_PUBLIC_BASE_URL }}
+
+      - name: Purge GitHub camo cache
+        if: vars.CAMO_IMAGE_URL != ''
+        run: curl -sX PURGE "${{ vars.CAMO_IMAGE_URL }}"
