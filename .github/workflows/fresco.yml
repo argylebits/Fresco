@@ -24,7 +24,8 @@ jobs:
         id: fresco
         run: |
           IMAGE=$(fresco generate)
-          echo "url=$(fresco upload "$IMAGE")" >> "$GITHUB_OUTPUT"
+          URL=$(fresco upload "$IMAGE")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
         env:
           GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
           FRESCO_PROMPT:       ${{ secrets.FRESCO_PROMPT }}
@@ -39,7 +40,7 @@ jobs:
         run: |
           URL="${{ steps.fresco.outputs.url }}"
           FILENAME=$(basename "$URL")
-          fresco remote copy "$FILENAME" "latest.${FILENAME##*.}"
+          fresco remote copy "$FILENAME" "latest"
         env:
           FRESCO_SLUG:         ${{ secrets.FRESCO_SLUG }}
           R2_ACCOUNT_ID:       ${{ secrets.R2_ACCOUNT_ID }}

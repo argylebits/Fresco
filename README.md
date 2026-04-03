@@ -1,5 +1,5 @@
 <!-- Fresco image -->
-![Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/latest.png)
+![Fresco](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/fresco/latest)
 
 # Fresco
 
