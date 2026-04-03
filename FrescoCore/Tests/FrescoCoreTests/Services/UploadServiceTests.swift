@@ -152,6 +152,70 @@ struct UploadServiceTests {
         #expect(uploadCalled.withLock { $0 } == false)
     }
 
+    @Test("upload uses destinationFilename when provided")
+    func uploadUsesDestinationFilename() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let receivedKey = Mutex<String?>(nil)
+        let r2 = MockR2Client(onUpload: { _, key, _, _ in
+            receivedKey.withLock { $0 = key }
+        })
+
+        let service = UploadService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
+
+        let result = try await service.upload(
+            filePath: filePath,
+            slug: Self.testSlug,
+            destinationFilename: "latest.jpg"
+        )
+
+        #expect(receivedKey.withLock { $0 } == "my-wallpaper/latest.jpg")
+        #expect(result.r2Key == "my-wallpaper/latest.jpg")
+        #expect(result.publicURL == URL(string: "https://cdn.example.com/my-wallpaper/latest.jpg")!)
+    }
+
+    @Test("upload ignores nil destinationFilename")
+    func uploadIgnoresNilDestinationFilename() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let receivedKey = Mutex<String?>(nil)
+        let r2 = MockR2Client(onUpload: { _, key, _, _ in
+            receivedKey.withLock { $0 = key }
+        })
+
+        let service = UploadService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
+
+        let result = try await service.upload(
+            filePath: filePath,
+            slug: Self.testSlug,
+            destinationFilename: nil
+        )
+
+        #expect(receivedKey.withLock { $0 } == "my-wallpaper/2025-01-01-000000.jpg")
+        #expect(result.r2Key == "my-wallpaper/2025-01-01-000000.jpg")
+    }
+
+    @Test("upload throws on empty destinationFilename")
+    func uploadThrowsOnEmptyDestinationFilename() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let service = UploadService(
+            r2: MockR2Client(),
+            publicBaseURL: Self.testPublicBaseURL
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.upload(
+                filePath: filePath,
+                slug: Self.testSlug,
+                destinationFilename: ""
+            )
+        }
+    }
+
     @Test("upload throws on invalid slug")
     func uploadThrowsOnInvalidSlug() async throws {
         let (filePath, tmpSlug) = try writeTempFile()
