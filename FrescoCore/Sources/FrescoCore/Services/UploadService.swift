@@ -23,7 +23,17 @@ public struct UploadService: Sendable {
         }
 
         let fileURL = URL(fileURLWithPath: filePath)
-        let filename = try FilenameValidator.validate(destinationFilename ?? fileURL.lastPathComponent)
+        let filename: String
+        if let destinationFilename {
+            filename = try FilenameValidator.validate(destinationFilename)
+        } else {
+            let derivedFilename = fileURL.lastPathComponent
+            do {
+                filename = try FilenameValidator.validate(derivedFilename)
+            } catch {
+                throw FrescoError.fileReadError("Invalid filename in path: \(filePath)")
+            }
+        }
 
         let data: Data
         do {
