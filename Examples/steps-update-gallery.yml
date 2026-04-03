@@ -13,11 +13,14 @@
 #     contents: write
 #     pull-requests: write
 
-      - name: Append gallery entry
+      - name: Add gallery entry (newest first)
         run: |
           URL="${{ steps.fresco.outputs.url }}"
-          DATE="$(date +%Y-%m-%d)"
-          echo "| ${DATE} | ![]($URL) |" >> gallery.md
+          DATE="$(date -u +%Y-%m-%d)"
+          ROW="| ${DATE} | ![]($URL) |"
+          sed -i.bak "/^|------|-------|$/a\\
+          $ROW" gallery.md
+          rm -f gallery.md.bak
 
       - name: Open PR with update
         run: |
