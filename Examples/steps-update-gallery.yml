@@ -4,7 +4,10 @@
 #
 #   - name: Generate and upload
 #     id: fresco
-#     run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
+#     run: |
+#       IMAGE=$(fresco generate)
+#       URL=$(fresco upload "$IMAGE")
+#       echo "url=$URL" >> "$GITHUB_OUTPUT"
 #     env: ...
 #
 # Your workflow must include these permissions:

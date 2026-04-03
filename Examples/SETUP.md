@@ -53,7 +53,10 @@ The step snippets expect the upload URL as a GitHub Actions output. Set up your 
 ```yaml
 - name: Generate and upload
   id: fresco
-  run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
+  run: |
+    IMAGE=$(fresco generate)
+    URL=$(fresco upload "$IMAGE")
+    echo "url=$URL" >> "$GITHUB_OUTPUT"
   env:
     # ... all secrets
 ```
@@ -64,7 +67,7 @@ The readme snippet uses an HTML comment as a marker. For example:
 
 ```markdown
 <!-- Fresco image -->
-![Fresco](https://your-r2-domain.dev/your-slug/latest.png)
+![Fresco](https://your-r2-domain.dev/your-slug/latest)
 ```
 
 The marker can be whatever you want — just keep it in sync with the `sed` pattern in your workflow.
