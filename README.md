@@ -7,7 +7,7 @@
 
 Fresco is a composable CLI for generating images with the Google Gemini Imagen API and publishing them to Cloudflare R2. Pair it with a GitHub Actions workflow to keep a fresh image in your README, gallery, or anywhere else.
 
-The banner image above is updated by Fresco.
+The banner image above is updated by Fresco. Browse the [Gallery](gallery.md) for the full image history.
 
 ---
 
