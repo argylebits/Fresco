@@ -9,7 +9,7 @@ public struct UploadService: Sendable {
         self.publicBaseURL = publicBaseURL
     }
 
-    public func upload(filePath: String, slug: String) async throws(FrescoError) -> UploadResult {
+    public func upload(filePath: String, slug: String, destinationFilename: String? = nil) async throws(FrescoError) -> UploadResult {
         let slug = try SlugValidator.validate(slug)
 
         guard
@@ -23,7 +23,7 @@ public struct UploadService: Sendable {
         }
 
         let fileURL = URL(fileURLWithPath: filePath)
-        let filename = fileURL.lastPathComponent
+        let filename = destinationFilename ?? fileURL.lastPathComponent
 
         guard !filename.isEmpty, filename != ".", filename != ".." else {
             throw FrescoError.fileReadError("Invalid filename in path: \(filePath)")
