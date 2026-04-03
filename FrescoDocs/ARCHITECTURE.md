@@ -75,14 +75,14 @@ In GitHub Actions, these values come from repository secrets. Locally, they live
 │                                             │
 │  fresco upload <file> [destination]         │
 │    │                                        │
-│    └─▶ FrescoCore.R2Client                  │
-│          uploads {slug}/{filename}          │
+│    └─▶ FrescoCore.UploadService             │
+│          calls R2Client                     │
 │          prints public URL                  │
 │                                             │
 │  fresco remote copy <source> <destination>  │
 │    │                                        │
-│    └─▶ FrescoCore.R2Client                  │
-│          S3 CopyObject within bucket        │
+│    └─▶ FrescoCore.CopyService               │
+│          S3 CopyObject via R2Client         │
 │          prints public URL                  │
 └─────────────────────────────────────────────┘
                       │
