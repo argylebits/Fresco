@@ -15,15 +15,13 @@ Fresco/
 │   ├── Sources/FrescoCLI/
 │   └── Tests/FrescoCLITests/
 ├── FrescoDocs/                  design docs and templates
-├── fresco.template.env           example configuration
+├── Examples/                    GitHub Actions workflow examples
+├── fresco.template.env          example configuration
 ├── .github/
 │   └── workflows/
-│       ├── fresco.yml           daily image generation
-│       └── ci.yml               build and test on push
-├── docs/
-├── gallery.md
-└── homebrew/
-    └── fresco.rb                Homebrew formula
+│       ├── ci.yml               build and test on push
+│       └── release.yml          release automation
+└── gallery.md
 ```
 
 ---
@@ -35,11 +33,8 @@ All configuration is handled by [apple/swift-configuration](https://github.com/a
 A single `.env` file (or environment variables in CI) provides everything:
 
 ```
-FRESCO_PROMPT="A fresco like the ones you'd see in central Texas, tagged with graffiti art that says Fresco. 4:1."
+FRESCO_PROMPT=A fresco like the ones you'd see in central Texas, tagged with graffiti art that says Fresco. 4:1.
 FRESCO_SLUG=fresco
-FRESCO_NAME=Fresco
-FRESCO_SCHEDULE=daily
-FRESCO_SCHEDULE_HOUR=3
 GEMINI_API_KEY=xxx
 R2_ACCOUNT_ID=xxx
 R2_ACCESS_KEY_ID=xxx
@@ -48,13 +43,16 @@ R2_BUCKET=fresco-images
 R2_PUBLIC_BASE_URL=https://pub-xxxx.r2.dev
 ```
 
-The provider hierarchy in code:
+The CLI loads config via a single `EnvironmentVariablesProvider` from swift-configuration, which reads both shell environment variables and a `.env` file if present:
 
 ```swift
-let config = ConfigReader(providers: [
-    EnvironmentVariablesProvider(),   // env vars (CI, shell)
-    // .env file provider if needed
-])
+let envProvider: EnvironmentVariablesProvider
+if FileManager.default.fileExists(atPath: ".env") {
+    envProvider = try await EnvironmentVariablesProvider(environmentFilePath: ".env")
+} else {
+    envProvider = EnvironmentVariablesProvider()
+}
+let config = ConfigReader(provider: envProvider)
 ```
 
 In GitHub Actions, these values come from repository secrets. Locally, they live in `.env` (gitignored).
@@ -72,22 +70,26 @@ In GitHub Actions, these values come from repository secrets. Locally, they live
 │    ├─▶ swift-configuration                  │
 │    │     reads env vars / .env              │
 │    │                                        │
-│    ├─▶ FrescoCore.GeminiClient              │
-│    │     POST Gemini Imagen API             │
-│    │     returns JPEG bytes                 │
+│    └─▶ FrescoCore.GenerateService            │
+│          calls GeminiClient (Imagen API)    │
+│          writes image to /tmp/{slug}/       │
+│                                             │
+│  fresco upload <file> [destination]         │
 │    │                                        │
-│    ├─▶ FrescoCore.R2Client                  │
-│    │     uploads YYYY-MM-DD.jpg             │
-│    │     uploads today.jpg (overwrite)      │
+│    └─▶ FrescoCore.UploadService             │
+│          calls R2Client                     │
+│          prints public URL                  │
+│                                             │
+│  fresco remote copy <source> <destination>  │
 │    │                                        │
-│    └─▶ FrescoCLI.GalleryWriter              │
-│          appends entry to gallery.md        │
-│          git add + commit + push            │
+│    └─▶ FrescoCore.CopyService               │
+│          S3 CopyObject via R2Client         │
+│          prints public URL                  │
 └─────────────────────────────────────────────┘
                       │
-                      │ stable public URL
+                      │ public URL
                       ▼
-        https://pub-xxxx.r2.dev/{slug}/today.jpg
+        https://pub-xxxx.r2.dev/{slug}/{filename}
                       │
               ┌───────┴────────┐
               │  README.md     │
@@ -126,7 +128,7 @@ In GitHub Actions, these values come from repository secrets. Locally, they live
 └──────────────────────┬───────────────────────┘
                        │ uploads
                        ▼
-        https://pub-xxxx.r2.dev/{slug}/today.jpg
+        https://pub-xxxx.r2.dev/{slug}/{filename}
 ```
 
 ---
@@ -137,44 +139,26 @@ Everything that both the CLI and the server need lives in `FrescoCore`. Neither 
 
 ### Key types
 
-**`GenerationProviderProtocol`**
-The central abstraction. The CLI and server both work through this protocol — they never call Gemini or R2 directly.
+**`GeminiClientProtocol`** + **`GeminiClient`**
+URLSession-based Gemini Imagen API client. Returns image data. No third-party HTTP library.
 
-```swift
-protocol GenerationProviderProtocol: Sendable {
-    func generate(prompt: String, slug: String, date: Date) async throws -> GenerationResult
-}
-```
+**`R2ClientProtocol`** + **`R2Client`**
+S3-compatible client for Cloudflare R2. Uses AWS Signature V4. Supports upload and server-side copy. No third-party SDK.
 
-**`DirectGenerationProvider`** — Phase 1
-Implements the protocol by calling `GeminiClient` and `R2Client` directly. Used by the CLI in standalone mode.
+**`GenerateService`**
+Generates an image using `GeminiClient`, writes it to `/tmp/{slug}/`, and returns the local file path.
 
-**`ServerGenerationProvider`** — Phase 2
-Implements the protocol by calling the Fresco server API. Used by the CLI in server mode.
+**`UploadService`**
+Uploads a local file to R2 as `{slug}/{filename}` and returns the public URL.
 
-**`GeminiClient`**
-URLSession-based Gemini Imagen API client. No third-party HTTP library.
+**`CopyService`**
+Issues an S3 CopyObject request to copy an object within the bucket.
 
-**`R2Client`**
-S3-compatible client for Cloudflare R2. Uses AWS Signature V4. No third-party SDK.
+### Validators
 
----
+**`SlugValidator`** — validates project slugs (alphanumeric, hyphens, underscores).
 
-## The GenerationProviderProtocol pattern
-
-The CLI determines which provider to use at startup based on whether a server URL is configured:
-
-```swift
-let provider: any GenerationProviderProtocol
-
-if let serverURL = config.string(forKey: "FRESCO_SERVER_URL") {
-    provider = ServerGenerationProvider(serverURL: serverURL, apiKey: apiKey)
-} else {
-    provider = DirectGenerationProvider(gemini: geminiClient, r2: r2Client)
-}
-```
-
-From that point on, all generation logic is identical regardless of phase. Adding server support in Phase 2 requires no changes to any command implementation.
+**`FilenameValidator`** — validates destination filenames (rejects path traversal, slashes).
 
 ---
 
@@ -183,37 +167,31 @@ From that point on, all generation logic is identical regardless of phase. Addin
 ```
 {bucket}/
 └── {slug}/
-    ├── today.jpg          ← overwritten daily (not a symlink — R2 is object storage)
-    ├── 2026-03-23.jpg     ← permanent archive
-    ├── 2026-03-22.jpg
+    ├── latest.png                ← stable alias (via fresco remote copy)
+    ├── 2026-03-23-141039.png     ← permanent archive
+    ├── 2026-03-22-030000.png
     └── ...
 ```
 
 The public URL pattern is always:
 ```
-{publicBaseURL}/{slug}/today.jpg
-{publicBaseURL}/{slug}/2026-03-23.jpg
+{publicBaseURL}/{slug}/{filename}
 ```
 
 ---
 
 ## Repository/protocol/mock pattern
 
-All external dependencies (Gemini, R2, the Fresco server) are behind protocols. Tests use in-memory mocks. No network calls in the test suite.
+All external dependencies (Gemini, R2) are behind protocols. Tests use mock implementations that live in test targets (not in FrescoCore). No network calls in the test suite.
 
 ```
 GeminiClientProtocol
     ├── GeminiClient          (production — URLSession)
-    └── MockGeminiClient      (tests — returns fixed data or throws)
+    └── MockGeminiClient      (tests — configurable result or error)
 
 R2ClientProtocol
     ├── R2Client              (production — S3-compatible)
-    └── MockR2Client          (tests — in-memory store)
-
-GenerationProviderProtocol
-    ├── DirectGenerationProvider   (Phase 1 — direct API calls)
-    ├── ServerGenerationProvider   (Phase 2 — calls Fresco server)
-    └── MockGenerationProvider     (tests)
+    └── MockR2Client          (tests — configurable error, optional callbacks)
 ```
 
-For configuration in tests, use swift-configuration's `InMemoryProvider` to supply test values without touching the environment or files.
+For configuration in CLI tests, use swift-configuration's `InMemoryProvider` to supply test values without touching the environment or files.

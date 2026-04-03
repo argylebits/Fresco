@@ -27,11 +27,11 @@ swift test --package-path FrescoCLI
 ```bash
 # Build and run
 swift run --package-path FrescoCLI fresco --help
-swift run --package-path FrescoCLI fresco init --defaults
 swift run --package-path FrescoCLI fresco generate
+swift run --package-path FrescoCLI fresco upload /tmp/my-project/image.png
 ```
 
-To test a real generation locally you need a `.env` file with valid credentials. Either run `swift run fresco init` interactively or copy `fresco.template.env` to `.env` and fill in your values.
+To test locally you need a `.env` file with valid credentials. Copy `fresco.template.env` to `.env` and fill in your values.
 
 ---
 
@@ -141,35 +141,45 @@ Fresco/
 │   ├── Package.swift
 │   ├── Sources/FrescoCore/
 │   │   ├── Models/
-│   │   │   └── GenerationResult.swift     result of a generation attempt
-│   │   ├── Providers/
-│   │   │   ├── GenerationProviderProtocol.swift
-│   │   │   ├── DirectGenerationProvider.swift
-│   │   │   ├── ServerGenerationProvider.swift
-│   │   │   └── MockGenerationProvider.swift
+│   │   │   ├── GenerationResult.swift
+│   │   │   ├── UploadResult.swift
+│   │   │   └── FrescoError.swift
+│   │   ├── Services/
+│   │   │   ├── GenerateService.swift
+│   │   │   ├── UploadService.swift
+│   │   │   └── CopyService.swift
 │   │   ├── Clients/
 │   │   │   ├── GeminiClient.swift         + GeminiClientProtocol
-│   │   │   ├── R2Client.swift             + R2ClientProtocol
-│   │   │   └── Mocks/
-│   │   │       ├── MockGeminiClient.swift
-│   │   │       └── MockR2Client.swift
-│   │   └── Utilities/
+│   │   │   └── R2Client.swift             + R2ClientProtocol
+│   │   ├── SlugValidator.swift
+│   │   ├── FilenameValidator.swift
+│   │   └── ImageFormat.swift
 │   └── Tests/FrescoCoreTests/
+│       ├── Clients/
+│       │   ├── Mocks/
+│       │   │   ├── MockGeminiClient.swift
+│       │   │   └── MockR2Client.swift
+│       │   ├── GeminiClientTests.swift
+│       │   └── R2ClientTests.swift
+│       └── Services/
+│           ├── GenerateServiceTests.swift
+│           ├── UploadServiceTests.swift
+│           └── CopyServiceTests.swift
 │
 ├── FrescoCLI/
 │   ├── Package.swift                      depends on FrescoCore via path
 │   ├── Sources/FrescoCLI/
-│   │   ├── main.swift
-│   │   ├── Commands/
-│   │   │   ├── InitCommand.swift
-│   │   │   └── GenerateCommand.swift
-│   │   └── Utilities/
-│   │       ├── GalleryWriter.swift        updates gallery.md
-│   │       ├── ReadmeUpdater.swift        inserts image URL into README
-│   │       └── WorkflowWriter.swift       writes .github/workflows/fresco.yml
+│   │   ├── FrescoCLI.swift                @main entry point
+│   │   ├── ConfigLoading.swift            shared config reader setup
+│   │   └── Commands/
+│   │       ├── GenerateCommand.swift
+│   │       ├── UploadCommand.swift
+│   │       ├── RemoteCommand.swift
+│   │       └── RemoteCopyCommand.swift
 │   └── Tests/FrescoCLITests/
 │
 ├── FrescoDocs/                            design docs and templates
+├── Examples/                              GitHub Actions workflow examples
 └── (root config files)
 ```
 
@@ -177,9 +187,9 @@ Fresco/
 
 ## Configuration
 
-All configuration is via environment variables using [apple/swift-configuration](https://github.com/apple/swift-configuration). See the [CLI Reference](../docs/CLI.md) for the full list of environment variables.
+All configuration is via environment variables using [apple/swift-configuration](https://github.com/apple/swift-configuration). See the [CLI Reference](../CLI.md) for the full list of environment variables.
 
-Locally, copy `fresco.template.env` to `.env` and fill in your values, or run `fresco init` to generate `.env`. `.env` is gitignored.
+Locally, copy `fresco.template.env` to `.env` and fill in your values. `.env` is gitignored.
 
 ---
 
@@ -188,37 +198,39 @@ Locally, copy `fresco.template.env` to `.env` and fill in your values, or run `f
 ```bash
 swift test --package-path FrescoCore
 swift test --package-path FrescoCLI
-swift test --package-path FrescoCore --filter FrescoCoreTests
-swift test --package-path FrescoCore --filter DirectGenerationProviderTests
+swift test --package-path FrescoCore --filter GenerateServiceTests
 swift test --package-path FrescoCore --verbose
 ```
 
-Tests use mock implementations and swift-configuration's `InMemoryProvider` — no network calls, no disk I/O, no API keys required.
+Tests use mock implementations — no network calls, no API keys required. CLI tests use swift-configuration's `InMemoryProvider`.
 
 ### What is tested
 
 | Suite | Covers |
 |---|---|
-| `DirectGenerationProviderTests` | Success path, Gemini error, R2 error |
+| `GenerateServiceTests` | Image generation, file write, slug validation |
+| `UploadServiceTests` | File upload, destination filename, validation |
+| `CopyServiceTests` | Server-side copy, filename validation |
+| `R2ClientTests` | Request building for upload and copy |
+| `GeminiClientTests` | Request/response handling |
 
 ### Adding a test
 
-All tests use the mock pattern. Never import a production client in a test file.
+All tests use the mock pattern. Never import a production client in a test file. Mocks live in test targets, not in FrescoCore.
 
 ```swift
 func test_generate_success() async throws {
-    let gemini = MockGeminiClient(behaviour: .success(Data(repeating: 0xFF, count: 64)))
-    let r2     = MockR2Client()
-    let provider = DirectGenerationProvider(gemini: gemini, r2: r2)
+    let jpegData = Data([0xFF, 0xD8, 0xFF, 0xE0])
+    let gemini = MockGeminiClient(result: jpegData)
+    let service = GenerateService(gemini: gemini)
 
-    let result = try await provider.generate(
+    let result = try await service.generate(
         prompt: "test prompt",
         slug: "test",
         date: .now
     )
 
-    XCTAssertTrue(result.succeeded)
-    XCTAssertEqual(r2.uploadedKeys.count, 2)   // dated + today
+    XCTAssertTrue(result.filePath.hasSuffix(".jpg"))
 }
 ```
 
@@ -228,23 +240,17 @@ func test_generate_success() async throws {
 
 1. Create `FrescoCLI/Sources/FrescoCLI/Commands/MyCommand.swift`
 2. Implement `AsyncParsableCommand`
-3. Add to the subcommands list in `main.swift`
-4. Document in `docs/CLI.md`
+3. Add to the subcommands list in `FrescoCLI.swift`
+4. Document in `FrescoDocs/CLI.md`
 
 ---
 
 ## Cutting a release
 
-1. Update the version string in `FrescoCLI/Sources/FrescoCLI/main.swift`
+1. Update the version string in `FrescoCLI/Sources/FrescoCLI/FrescoCLI.swift`
 2. Tag the release: `git tag v1.0.0 && git push --tags`
 3. Create a GitHub release from the tag
-4. Update the Homebrew formula in `homebrew/fresco.rb` with the new version and SHA256
-5. Push the formula to `github.com/argylebits/homebrew-fresco`
-
-The SHA256 for the formula:
-```bash
-curl -L https://github.com/argylebits/Fresco/archive/refs/tags/v1.0.0.tar.gz | shasum -a 256
-```
+4. The release workflow handles formula updates
 
 ---
 

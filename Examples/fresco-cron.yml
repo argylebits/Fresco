@@ -1,4 +1,4 @@
-# Generate a Fresco image on a schedule.
+# Generate and upload a Fresco image on a schedule.
 # Adjust the cron expression to your preferred frequency.
 #
 # Common schedules:
@@ -22,8 +22,8 @@ jobs:
       - name: Install Fresco
         run: brew install argylebits/tap/fresco
 
-      - name: Generate image
-        run: fresco generate
+      - name: Generate and upload
+        run: fresco upload $(fresco generate)
         env:
           FRESCO_PROMPT:         ${{ secrets.FRESCO_PROMPT }}
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}

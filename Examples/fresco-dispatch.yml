@@ -1,4 +1,4 @@
-# Generate a Fresco image on demand from the GitHub Actions UI.
+# Generate and upload a Fresco image on demand from the GitHub Actions UI.
 # Optionally override the prompt at trigger time.
 
 name: Fresco (Manual)
@@ -19,12 +19,12 @@ jobs:
       - name: Install Fresco
         run: brew install argylebits/tap/fresco
 
-      - name: Generate image
+      - name: Generate and upload
         run: |
           if [ -n "${{ github.event.inputs.prompt }}" ]; then
-            fresco generate --prompt "${{ github.event.inputs.prompt }}"
+            fresco upload $(fresco generate --prompt "${{ github.event.inputs.prompt }}")
           else
-            fresco generate
+            fresco upload $(fresco generate)
           fi
         env:
           FRESCO_PROMPT:         ${{ secrets.FRESCO_PROMPT }}

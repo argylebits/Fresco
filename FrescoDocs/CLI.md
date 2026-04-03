@@ -3,93 +3,16 @@
 ## Installation
 
 ```bash
-brew install argylebits/fresco
+brew install argylebits/tap/fresco
 ```
 
 ---
 
 ## Commands
 
-### `fresco init`
-
-Sets up a project for daily image generation. Run this once in a project directory.
-
-```bash
-fresco init
-```
-
-**What it does:**
-1. Asks for your project name, prompt, schedule, and credentials
-2. Creates `.env` in the current directory with all configuration
-3. Writes `.github/workflows/fresco.yml` for daily automation
-4. Inserts the image URL into your README (creates one if none exists)
-5. Creates `gallery.md`
-6. Sets GitHub Actions secrets via `gh secret set`
-7. Offers to run `fresco generate` immediately
-
-**Flags:**
-
-| Flag | Description |
-|---|---|
-| `--name <name>` | Project display name |
-| `--slug <slug>` | Project slug (used in R2 paths and URLs) |
-| `--prompt <prompt>` | Image generation prompt |
-| `--schedule <frequency>` | Generation frequency: `daily`, `weekly`, `monthly`, `quarterly`, or `annual` |
-| `--schedule-hour <0-23>` | UTC hour for generation (default: 3) |
-| `--gemini-key <key>` | Gemini API key |
-| `--r2-account-id <id>` | Cloudflare account ID |
-| `--r2-access-key-id <id>` | R2 access key ID |
-| `--r2-secret-access-key <key>` | R2 secret access key |
-| `--r2-bucket <name>` | R2 bucket name |
-| `--r2-public-base-url <url>` | R2 public URL |
-| `--defaults` | Use default/placeholder values for anything not provided via flags (non-interactive) |
-| `--force` | Overwrite existing `.env` |
-
-Without `--defaults`, any values not provided via flags are prompted for interactively. With `--defaults`, missing values get placeholders silently.
-
-**Example — interactive:**
-
-```
-$ fresco init
-
-Welcome to Fresco 🎨
-
-Project name: Pinstripes
-Slug [pinstripes]:
-Describe the image you want generated each day:
-› A fresco like the ones you'd see in central Texas, tagged with "Fresco" in graffiti. 4:1.
-
-Schedule (daily/weekly/monthly/quarterly/annual) [daily]: daily
-Schedule hour (UTC, 0-23) [3]: 3
-
-Gemini API key: ****
-R2 Account ID: ****
-R2 Access Key ID: ****
-R2 Secret Access Key: ****
-R2 Bucket: fresco-images
-R2 Public Base URL: https://pub-xxxx.r2.dev
-
-✓ Created .env
-✓ Created .github/workflows/fresco.yml
-✓ Updated README.md with image URL
-
-Your image URL:
-  https://pub-xxxx.r2.dev/pinstripes/today.jpg
-
-Generate your first image now? [Y/n]: Y
-```
-
-**Example — non-interactive:**
-
-```bash
-fresco init --name Pinstripes --slug pinstripes --defaults
-```
-
----
-
 ### `fresco generate`
 
-Generates an image and uploads it to R2.
+Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path. The file extension is auto-detected from the image data (PNG or JPEG).
 
 ```bash
 fresco generate
@@ -97,11 +20,9 @@ fresco generate
 
 **What it does:**
 1. Reads configuration from environment variables (via swift-configuration)
-2. Checks the configured schedule — exits cleanly if today is not a scheduled day. If `FRESCO_SCHEDULE` is not set, always generates.
-3. Calls Gemini Imagen API with the configured prompt (or overridden/appended prompt)
-4. Uploads image to R2 as `{slug}/YYYY-MM-DD.jpg`
-5. Updates `{slug}/today.jpg` (overwrites previous)
-6. Appends entry to `gallery.md`
+2. Calls Gemini Imagen API with the configured prompt (or overridden/appended prompt)
+3. Detects the image format from the data (PNG or JPEG) and writes to `/tmp/{slug}/{timestamp}.{ext}`
+4. Prints the file path to stdout
 
 **Flags:**
 
@@ -109,20 +30,13 @@ fresco generate
 |---|---|
 | `--prompt <prompt>` | Override `FRESCO_PROMPT` entirely for this run |
 | `--append <text>` | Append text to `FRESCO_PROMPT` for this run |
-
-**Exit codes:**
-
-| Code | Meaning |
-|---|---|
-| 0 | Success (or skipped — not a scheduled day) |
-| 1 | Configuration error |
-| 2 | Gemini API error |
-| 3 | R2 upload error |
+| `--slug <slug>` | Override `FRESCO_SLUG` for this run |
+| `--gemini-api-key <key>` | Override `GEMINI_API_KEY` for this run |
 
 **Examples:**
 
 ```bash
-# Standard scheduled generation
+# Standard generation
 fresco generate
 
 # One-off with a completely different prompt
@@ -132,7 +46,111 @@ fresco generate --prompt "A sunset over the Hill Country"
 fresco generate --append "Celebrating release v2.1.0"
 ```
 
-**Event-driven usage:** `fresco generate` can be called from any workflow, not just the daily cron. For example, to generate a release image:
+---
+
+### `fresco upload`
+
+Uploads a local image to Cloudflare R2. Prints the public URL.
+
+```bash
+fresco upload <file> [destination]
+```
+
+**What it does:**
+1. Reads the image file at the given path
+2. Uploads it to R2 as `{slug}/{filename}` (or `{slug}/{destination}` if provided)
+3. Prints the public URL to stdout
+
+**Arguments:**
+
+| Argument | Description |
+|---|---|
+| `file` | Path to the image file to upload |
+| `destination` | Optional destination filename (defaults to the source filename) |
+
+**Flags:**
+
+| Flag | Description |
+|---|---|
+| `--slug <slug>` | Override `FRESCO_SLUG` for this run |
+| `--r2-account-id <id>` | Override `R2_ACCOUNT_ID` |
+| `--r2-access-key-id <id>` | Override `R2_ACCESS_KEY_ID` |
+| `--r2-secret-access-key <key>` | Override `R2_SECRET_ACCESS_KEY` |
+| `--r2-bucket <name>` | Override `R2_BUCKET` |
+| `--r2-public-base-url <url>` | Override `R2_PUBLIC_BASE_URL` |
+
+**Examples:**
+
+```bash
+# Upload with original filename
+fresco upload /tmp/my-project/2026-04-02-120000.png
+
+# Upload as a specific filename
+fresco upload /tmp/my-project/2026-04-02-120000.png latest.png
+```
+
+---
+
+### `fresco remote copy`
+
+Copies an object within R2 (server-side, no download/re-upload).
+
+```bash
+fresco remote copy <source> <destination>
+```
+
+**What it does:**
+1. Issues an S3 CopyObject request to copy `{slug}/{source}` to `{slug}/{destination}`
+2. Prints the public URL of the destination object
+
+**Arguments:**
+
+| Argument | Description |
+|---|---|
+| `source` | Source filename (within your slug's namespace) |
+| `destination` | Destination filename |
+
+**Flags:**
+
+| Flag | Description |
+|---|---|
+| `--slug <slug>` | Override `FRESCO_SLUG` for this run |
+| `--r2-account-id <id>` | Override `R2_ACCOUNT_ID` |
+| `--r2-access-key-id <id>` | Override `R2_ACCESS_KEY_ID` |
+| `--r2-secret-access-key <key>` | Override `R2_SECRET_ACCESS_KEY` |
+| `--r2-bucket <name>` | Override `R2_BUCKET` |
+| `--r2-public-base-url <url>` | Override `R2_PUBLIC_BASE_URL` |
+
+**Examples:**
+
+```bash
+# Alias a dated image to latest.png
+fresco remote copy 2026-04-02-120000.png latest.png
+```
+
+---
+
+### Composable workflows
+
+The commands compose via shell substitution:
+
+```bash
+# Generate and preview (macOS)
+open $(fresco generate)
+
+# Generate and preview (Linux)
+xdg-open $(fresco generate)
+
+# Generate and upload (keeps original filename)
+fresco upload $(fresco generate)
+
+# Generate, upload dated, then alias to latest (preserves extension)
+IMAGE=$(fresco generate)
+fresco upload "$IMAGE"
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
+```
+
+**Event-driven usage:** The commands can be called from any workflow trigger. For example, to generate a release image:
 
 ```yaml
 on:
@@ -140,7 +158,7 @@ on:
     types: [published]
 
 steps:
-  - run: fresco generate --append "Release v${{ github.event.release.tag_name }}"
+  - run: fresco upload $(fresco generate --append "Release v${{ github.event.release.tag_name }}")
 ```
 
 ---
@@ -160,14 +178,19 @@ These flags work on all commands:
 
 All configuration is via environment variables, managed by [apple/swift-configuration](https://github.com/apple/swift-configuration).
 
+### Generate
+
 | Variable | Description |
 |---|---|
 | `FRESCO_PROMPT` | The image generation prompt |
-| `FRESCO_SLUG` | Project slug (used in R2 paths and URLs) |
-| `FRESCO_NAME` | Display name |
-| `FRESCO_SCHEDULE` | Generation frequency: `daily`, `weekly`, `monthly`, `quarterly`, or `annual` |
-| `FRESCO_SCHEDULE_HOUR` | UTC hour for generation (0-23) |
+| `FRESCO_SLUG` | Project slug (used in filenames and R2 paths) |
 | `GEMINI_API_KEY` | Google Gemini API key |
+
+### Upload and remote copy
+
+| Variable | Description |
+|---|---|
+| `FRESCO_SLUG` | Project slug (used in R2 paths) |
 | `R2_ACCOUNT_ID` | Cloudflare account ID |
 | `R2_ACCESS_KEY_ID` | R2 access key ID |
 | `R2_SECRET_ACCESS_KEY` | R2 secret access key |
@@ -180,6 +203,4 @@ Locally, store these in `.env` (gitignored). In CI, use GitHub Actions secrets.
 
 ## GitHub Actions workflow
 
-Generated by `fresco init` at `.github/workflows/fresco.yml`. See [`template.github/workflows/fresco.yml`](../template.github/workflows/fresco.yml) for the template.
-
-`fresco init` automatically adds the required secrets to the repo using the GitHub CLI (`gh secret set`).
+See the [`Examples/`](../Examples/) directory for ready-to-use workflows and step snippets. See [`Examples/SETUP.md`](../Examples/SETUP.md) for setup instructions.
