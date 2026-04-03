@@ -108,6 +108,44 @@ struct R2ClientTests {
         )
     }
 
+    @Test func buildCopyRequest_constructsCorrectURL() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            date: fixedDate
+        )
+
+        #expect(request.url?.absoluteString == "https://test-account.r2.cloudflarestorage.com/test-bucket/images/dest.jpg")
+        #expect(request.httpMethod == "PUT")
+    }
+
+    @Test func buildCopyRequest_setsCopySourceHeader() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "x-amz-copy-source") == "/test-bucket/images/source.jpg")
+    }
+
+    @Test func buildCopyRequest_signsWithAWSV4() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "x-amz-date") == "20260324T120000Z")
+        #expect(request.value(forHTTPHeaderField: "x-amz-content-sha256") != nil)
+        let auth = request.value(forHTTPHeaderField: "Authorization")
+        #expect(auth?.hasPrefix("AWS4-HMAC-SHA256 Credential=test-key-id/20260324/auto/s3/aws4_request") == true)
+        #expect(auth?.contains("SignedHeaders=") == true)
+    }
+
     @Test func handleResponse_successDoesNotThrow() throws {
         let client = makeClient()
         let url = URL(string: "https://example.com")!
