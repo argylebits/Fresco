@@ -48,6 +48,114 @@ public struct R2Client: R2ClientProtocol, Sendable {
         try handleResponse(data: responseData, response: response)
     }
 
+    public func copy(
+        sourceKey: String,
+        destinationKey: String
+    ) async throws(FrescoError) {
+        let request = try buildCopyRequest(
+            sourceKey: sourceKey, destinationKey: destinationKey, date: Date()
+        )
+
+        let responseData: Data
+        let response: URLResponse
+        do {
+            (responseData, response) = try await session.data(for: request)
+        } catch {
+            throw .r2CopyError("R2 copy failed: \(error.localizedDescription)")
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw .r2CopyError("Invalid response")
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let bodyText = String(data: responseData, encoding: .utf8)
+            let message: String
+            if let bodyText, !bodyText.isEmpty {
+                message = "HTTP \(httpResponse.statusCode): \(bodyText)"
+            } else {
+                message = "HTTP \(httpResponse.statusCode)"
+            }
+            throw .r2CopyError(message)
+        }
+    }
+
+    func buildCopyRequest(
+        sourceKey: String,
+        destinationKey: String,
+        date: Date
+    ) throws(FrescoError) -> URLRequest {
+        let host = "\(accountId).r2.cloudflarestorage.com"
+
+        guard let baseURL = URL(string: "https://\(host)") else {
+            throw .r2CopyError("Invalid R2 endpoint URL")
+        }
+
+        let url = baseURL.appendingPathComponent(bucket).appendingPathComponent(destinationKey)
+        let path = url.path(percentEncoded: true)
+
+        let amzDate = date.formatted(
+            .iso8601.year().month().day()
+                .time(includingFractionalSeconds: false)
+                .timeSeparator(.omitted).dateSeparator(.omitted)
+                .timeZone(separator: .omitted)
+        )
+        let dateStamp = String(amzDate.prefix(8))
+
+        let copySource = "/\(bucket)/\(sourceKey)"
+        let payloadHash = sha256Hex(Data())
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue(host, forHTTPHeaderField: "Host")
+        request.setValue(copySource, forHTTPHeaderField: "x-amz-copy-source")
+        request.setValue(amzDate, forHTTPHeaderField: "x-amz-date")
+        request.setValue(payloadHash, forHTTPHeaderField: "x-amz-content-sha256")
+
+        let signedHeaders = "host;x-amz-content-sha256;x-amz-copy-source;x-amz-date"
+        let canonicalHeaders = [
+            "host:\(host)",
+            "x-amz-content-sha256:\(payloadHash)",
+            "x-amz-copy-source:\(copySource)",
+            "x-amz-date:\(amzDate)\n",
+        ].joined(separator: "\n")
+
+        let canonicalRequest = [
+            "PUT",
+            path,
+            "",
+            canonicalHeaders,
+            signedHeaders,
+            payloadHash,
+        ].joined(separator: "\n")
+
+        let region = "auto"
+        let service = "s3"
+        let credentialScope = "\(dateStamp)/\(region)/\(service)/aws4_request"
+
+        let stringToSign = [
+            "AWS4-HMAC-SHA256",
+            amzDate,
+            credentialScope,
+            sha256Hex(Data(canonicalRequest.utf8)),
+        ].joined(separator: "\n")
+
+        let signingKey = deriveSigningKey(
+            secretKey: secretAccessKey,
+            dateStamp: dateStamp,
+            region: region,
+            service: service
+        )
+
+        let signature = hmacSHA256Hex(key: signingKey, data: Data(stringToSign.utf8))
+
+        let authorization =
+            "AWS4-HMAC-SHA256 Credential=\(accessKeyId)/\(credentialScope), SignedHeaders=\(signedHeaders), Signature=\(signature)"
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+
+        return request
+    }
+
     func buildRequest(
         data: Data,
         key: String,

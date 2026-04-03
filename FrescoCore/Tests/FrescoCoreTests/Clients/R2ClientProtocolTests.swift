@@ -6,6 +6,9 @@ struct R2ClientProtocolTests {
     struct MockR2Client: R2ClientProtocol {
         func upload(data: Data, key: String, contentType: String, cacheControl: String) async throws(FrescoError) {
         }
+
+        func copy(sourceKey: String, destinationKey: String) async throws(FrescoError) {
+        }
     }
 
     @Test func protocol_requiresUploadMethod() async throws {

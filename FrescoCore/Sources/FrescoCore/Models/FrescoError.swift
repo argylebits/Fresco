@@ -6,5 +6,6 @@ public enum FrescoError: Error, Sendable {
     case configurationError(String)
     case fileReadError(String)
     case fileWriteError(String)
+    case r2CopyError(String)
     case unsupportedImageFormat(String)
 }
