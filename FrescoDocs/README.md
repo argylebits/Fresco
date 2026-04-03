@@ -17,8 +17,10 @@ fresco generate
 # Generate and upload to R2
 fresco upload $(fresco generate)
 
-# Alias the uploaded image to a stable URL
-fresco remote copy 2026-04-02-120000.png latest.png
+# Generate, upload, then alias to a stable URL (preserves extension)
+IMAGE=$(fresco generate)
+fresco upload "$IMAGE"
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
 ```
 
 Your project points at the stable URL:

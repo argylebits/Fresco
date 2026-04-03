@@ -15,7 +15,7 @@ Static hero images get stale. Rotating them manually is tedious. AI image genera
 ```bash
 fresco generate                              # create an image
 fresco upload $(fresco generate)             # create and publish
-fresco remote copy dated.png latest.png      # update the stable URL
+fresco remote copy dated.png latest.png       # update the stable URL
 ```
 
 That's it. The image URL never changes. The image does.

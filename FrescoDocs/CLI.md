@@ -144,13 +144,10 @@ xdg-open $(fresco generate)
 # Generate and upload (keeps original filename)
 fresco upload $(fresco generate)
 
-# Generate and upload as a specific filename
-fresco upload $(fresco generate) latest.png
-
-# Generate, upload dated, then alias to latest
+# Generate, upload dated, then alias to latest (preserves extension)
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" latest.png
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
 ```
 
 **Event-driven usage:** The commands can be called from any workflow trigger. For example, to generate a release image:

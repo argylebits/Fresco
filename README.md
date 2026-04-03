@@ -84,16 +84,13 @@ xdg-open $(fresco generate)
 # Generate and upload (keeps original filename)
 fresco upload $(fresco generate)
 
-# Generate and upload as a specific filename
-fresco upload $(fresco generate) latest.png
-
-# Generate, upload dated, then alias to latest
+# Generate, upload dated, then alias to latest (preserves extension)
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" latest.png
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
 ```
 
-Use `basename` to bridge a local file path to a remote filename — `fresco upload` prints a URL, but `fresco remote copy` takes filenames within your slug's namespace.
+Use `basename` to extract the filename from a local path, and `${IMAGE##*.}` to extract the extension — this ensures the stable alias always matches the actual image format.
 
 ---
 
@@ -165,7 +162,7 @@ on:
         description: 'Override the default prompt'
 ```
 
-There are also step snippets for updating a README image, maintaining a gallery, and copying to a stable `latest.png` URL. See [`Examples/SETUP.md`](Examples/SETUP.md) for the full list and setup instructions.
+There are also step snippets for updating a README image, maintaining a gallery, and copying to a stable `latest` URL. See [`Examples/SETUP.md`](Examples/SETUP.md) for the full list and setup instructions.
 
 ---
 
