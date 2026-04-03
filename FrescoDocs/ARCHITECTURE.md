@@ -69,10 +69,9 @@ In GitHub Actions, these values come from repository secrets. Locally, they live
 │    ├─▶ swift-configuration                  │
 │    │     reads env vars / .env              │
 │    │                                        │
-│    └─▶ FrescoCore.GeminiClient              │
-│          POST Gemini Imagen API             │
-│          returns JPEG bytes                 │
-│          writes to /tmp/{slug}/      │
+│    └─▶ FrescoCore.GenerateService            │
+│          calls GeminiClient (Imagen API)    │
+│          writes image to /tmp/{slug}/       │
 │                                             │
 │  fresco upload <file> [destination]         │
 │    │                                        │
