@@ -1,4 +1,4 @@
-# Generate a Fresco image when a new release is published.
+# Generate and upload a Fresco image when a new release is published.
 
 name: Fresco (Release)
 
@@ -15,8 +15,8 @@ jobs:
       - name: Install Fresco
         run: brew install argylebits/tap/fresco
 
-      - name: Generate image
-        run: fresco generate
+      - name: Generate and upload
+        run: fresco upload $(fresco generate)
         env:
           FRESCO_PROMPT:         ${{ secrets.FRESCO_PROMPT }}
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}

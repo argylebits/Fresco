@@ -1,14 +1,14 @@
-# Upload the generated image to a stable URL like:
+# Copy the uploaded image to a stable URL like:
 #   https://your-r2-domain.dev/your-slug/latest.jpg
 #
 # This lets you reference a fixed URL in your README that always shows
-# the most recent image. Add these steps after the "Generate image" step.
+# the most recent image. Add these steps after the "Generate and upload" step.
 #
-# The generate step must capture the URL as an output:
+# The generate-and-upload step must capture the URL as an output:
 #
-#   - name: Generate image
+#   - name: Generate and upload
 #     id: fresco
-#     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
+#     run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
 #     env: ...
 #
 # GitHub camo cache:
@@ -26,17 +26,16 @@
 
       - name: Copy to latest.jpg
         run: |
-          curl -sfo /tmp/latest.jpg "${{ steps.fresco.outputs.url }}"
-          aws s3 cp /tmp/latest.jpg \
-            "s3://${R2_BUCKET}/${FRESCO_SLUG}/latest.jpg" \
-            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
-            --content-type "image/jpeg"
+          URL="${{ steps.fresco.outputs.url }}"
+          FILENAME=$(basename "$URL")
+          fresco remote copy "$FILENAME" latest.jpg
         env:
-          R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
-          R2_BUCKET:             ${{ secrets.R2_BUCKET }}
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
-          AWS_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:      ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY:  ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET:             ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_BASE_URL:    ${{ secrets.R2_PUBLIC_BASE_URL }}
 
       - name: Purge GitHub camo cache
         if: vars.CAMO_IMAGE_URL != ''

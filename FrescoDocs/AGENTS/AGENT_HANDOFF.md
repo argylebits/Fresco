@@ -92,19 +92,16 @@ All configuration uses [apple/swift-configuration](https://github.com/apple/swif
 
 **Environment variables:**
 
-| Variable | Description |
-|---|---|
-| `FRESCO_PROMPT` | The image generation prompt (single string) |
-| `FRESCO_SLUG` | Project slug — used in R2 paths and URLs |
-| `FRESCO_NAME` | Display name |
-| `FRESCO_SCHEDULE` | Generation frequency: `daily`, `weekly`, `monthly`, `quarterly`, or `annual` |
-| `FRESCO_SCHEDULE_HOUR` | UTC hour for generation (0-23) |
-| `GEMINI_API_KEY` | Google Gemini API key |
-| `R2_ACCOUNT_ID` | Cloudflare account ID |
-| `R2_ACCESS_KEY_ID` | R2 access key |
-| `R2_SECRET_ACCESS_KEY` | R2 secret key |
-| `R2_BUCKET` | R2 bucket name |
-| `R2_PUBLIC_BASE_URL` | R2 public URL (e.g. `https://pub-xxxx.r2.dev`) |
+| Variable | Used by | Description |
+|---|---|---|
+| `FRESCO_PROMPT` | generate | The image generation prompt (single string) |
+| `FRESCO_SLUG` | all | Project slug — used in filenames and R2 paths |
+| `GEMINI_API_KEY` | generate | Google Gemini API key |
+| `R2_ACCOUNT_ID` | upload, remote copy | Cloudflare account ID |
+| `R2_ACCESS_KEY_ID` | upload, remote copy | R2 access key |
+| `R2_SECRET_ACCESS_KEY` | upload, remote copy | R2 secret key |
+| `R2_BUCKET` | upload, remote copy | R2 bucket name |
+| `R2_PUBLIC_BASE_URL` | upload, remote copy | R2 public URL (e.g. `https://pub-xxxx.r2.dev`) |
 
 Locally these live in `.env` (gitignored). In CI they come from GitHub Actions secrets.
 
@@ -133,7 +130,7 @@ struct GenerationResult: Sendable {
 
 `GeminiClientProtocol` + `GeminiClient` — calls Gemini Imagen API, returns JPEG `Data`. URLSession only, no third-party HTTP client.
 
-`R2ClientProtocol` + `R2Client` — S3-compatible uploads to Cloudflare R2. Use AWS Signature V4. Upload both `{slug}/YYYY-MM-DD.jpg` (archive) and `{slug}/today.jpg` (overwrite). No third-party SDK.
+`R2ClientProtocol` + `R2Client` — S3-compatible client for Cloudflare R2. Uses AWS Signature V4. Supports upload and server-side copy. No third-party SDK.
 
 `GenerationProviderProtocol` + `DirectGenerationProvider` — orchestrates Gemini + R2 for standalone mode. This is what the CLI calls.
 
@@ -170,10 +167,17 @@ Flags: `--name`, `--slug`, `--prompt`, `--schedule`, `--schedule-hour`, `--gemin
 - Read config from environment via swift-configuration
 - `--prompt` flag: override `FRESCO_PROMPT` entirely for this run
 - `--append` flag: append text to `FRESCO_PROMPT` for this run
-- Call `DirectGenerationProvider.generate(prompt:slug:date:)`
-- Append entry to `gallery.md`
-- Print success with the public URL
-- Always generates when called — schedule frequency is handled entirely by the cron expression in the GitHub Actions workflow
+- Call `GenerateService.generate(prompt:slug:date:)`
+- Write image to `/tmp/fresco/{slug}/{timestamp}.jpg`
+- Print the local file path to stdout
+
+`fresco upload <file> [destination]`
+- Upload a local image to R2 as `{slug}/{filename}` (or `{slug}/{destination}` if provided)
+- Print the public URL to stdout
+
+`fresco remote copy <source> <destination>`
+- Issue an S3 CopyObject request to copy `{slug}/{source}` to `{slug}/{destination}` within the bucket
+- Print the public URL of the destination object
 
 ---
 
@@ -202,14 +206,15 @@ Cloudflare R2 is S3-compatible. Use the S3 API with AWS Signature V4.
 
 Endpoint: `https://{accountId}.r2.cloudflarestorage.com`
 
-Two uploads per generation:
-1. `PUT /{bucket}/{slug}/2026-03-23.jpg` — permanent archive, `Cache-Control: public, max-age=31536000`
-2. `PUT /{bucket}/{slug}/today.jpg` — overwritten daily, `Cache-Control: public, max-age=3600`
+Upload via `fresco upload`:
+- `PUT /{bucket}/{slug}/{filename}` — one upload per invocation
+
+Copy via `fresco remote copy`:
+- S3 CopyObject within the bucket — `{slug}/{source}` to `{slug}/{destination}`
 
 The public URL uses the R2 public bucket URL, not the S3-compatible endpoint:
 ```
-{publicBaseURL}/{slug}/today.jpg
-{publicBaseURL}/{slug}/2026-03-23.jpg
+{publicBaseURL}/{slug}/{filename}
 ```
 
 ---

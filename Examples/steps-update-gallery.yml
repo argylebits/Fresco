@@ -1,10 +1,10 @@
-# Add these steps after the "Generate image" step in any Fresco workflow.
+# Add these steps after the "Generate and upload" step in any Fresco workflow.
 # Requires a gallery.md file (see fresco.template.gallery.md).
-# The generate step must capture the URL as an output:
+# The generate-and-upload step must capture the URL as an output:
 #
-#   - name: Generate image
+#   - name: Generate and upload
 #     id: fresco
-#     run: echo "url=$(fresco generate)" >> "$GITHUB_OUTPUT"
+#     run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
 #     env: ...
 #
 # Your workflow must include these permissions:

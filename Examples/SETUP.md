@@ -30,20 +30,32 @@ Add `.env` to your `.gitignore` to keep secrets out of version control:
 
 Copy one of the example workflows into `.github/workflows/`:
 
-- `fresco-cron.yml` — generate on a schedule
-- `fresco-dispatch.yml` — generate on demand from the GitHub UI
-- `fresco-release.yml` — generate when a release is published
-- `fresco-pre-release.yml` — generate when a pre-release is published
-- `fresco-release-pr.yml` — generate when a PR is labeled "release"
-- `fresco-tag.yml` — generate when a version tag is pushed
+- `fresco-cron.yml` — generate and upload on a schedule
+- `fresco-dispatch.yml` — generate and upload on demand from the GitHub UI
+- `fresco-release.yml` — generate and upload when a release is published
+- `fresco-pre-release.yml` — generate and upload when a pre-release is published
+- `fresco-release-pr.yml` — generate and upload when a PR is labeled "release"
+- `fresco-tag.yml` — generate and upload when a version tag is pushed
 
 ## Optional step snippets
 
-Add these steps after the generate step in any workflow above.
+Add these steps after the generate-and-upload step in any workflow above.
 
 - `steps-update-readme.yml` — replaces the image line after a marker in your README
 - `steps-update-gallery.yml` — appends a row to a markdown table
-- `steps-latest-jpg.yml` — copies the image to a stable `latest.jpg` URL on R2 and purges the GitHub camo cache
+- `steps-latest-jpg.yml` — copies the image to a stable `latest.jpg` URL on R2 using `fresco remote copy`, then purges the GitHub camo cache
+
+## Capturing the URL
+
+The step snippets expect the upload URL as a GitHub Actions output. Set up your generate-and-upload step like this:
+
+```yaml
+- name: Generate and upload
+  id: fresco
+  run: echo "url=$(fresco upload $(fresco generate))" >> "$GITHUB_OUTPUT"
+  env:
+    # ... all secrets
+```
 
 ## README image marker
 
