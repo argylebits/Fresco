@@ -25,7 +25,7 @@ brew install argylebits/tap/fresco
 # Copy the template and fill in your values
 cp fresco.template.env .env
 
-# Generate an image (writes to /tmp, prints the path)
+# Generate an image (writes to /tmp/{slug}/, prints the path)
 fresco generate
 
 # Generate and upload
@@ -38,7 +38,7 @@ fresco upload $(fresco generate)
 
 ### `fresco generate`
 
-Generates an image and writes it to `/tmp`. Prints the local file path.
+Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path.
 
 ```bash
 fresco generate                                          # use configured prompt
@@ -51,8 +51,8 @@ fresco generate --append "Celebrating release v2.1.0"    # extend configured pro
 Uploads a local image to R2. Prints the public URL.
 
 ```bash
-fresco upload /tmp/fresco/my-project/2026-04-02-120000.jpg             # keep original filename
-fresco upload /tmp/fresco/my-project/2026-04-02-120000.jpg latest.jpg  # upload as latest.jpg
+fresco upload /tmp/my-project/2026-04-02-120000.jpg             # keep original filename
+fresco upload /tmp/my-project/2026-04-02-120000.jpg latest.jpg  # upload as latest.jpg
 ```
 
 R2 key and public URL are composed as:

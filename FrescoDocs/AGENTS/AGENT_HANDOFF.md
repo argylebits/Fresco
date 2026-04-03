@@ -147,28 +147,14 @@ struct GenerationResult: Sendable {
 
 All commands. Import `FrescoCore` and `ArgumentParser`. No business logic here — delegate everything to `FrescoCore`.
 
-**Commands to implement:**
-
-`fresco init`
-- Interactive by default: project name, prompt, schedule hour, credentials
-- All values can be provided via flags for non-interactive use (agents, scripts)
-- `--defaults` flag: use default/placeholder values for anything not provided
-- Without `--defaults`, missing values are prompted for interactively
-- Write `.env` with all configuration
-- Write `.github/workflows/fresco.yml` with the cron expression matching `FRESCO_SCHEDULE` (daily=`0 H * * *`, weekly=`0 H * * 1`, monthly=`0 H 1 * *`, quarterly=`0 H 1 1,4,7,10 *`, annual=`0 H 1 1 *` where H is `FRESCO_SCHEDULE_HOUR`)
-- Insert image URL into README.md
-- Create `gallery.md` if it doesn't exist
-- Set GitHub Actions secrets via `gh secret set`
-- Offer to run `fresco generate` immediately
-
-Flags: `--name`, `--slug`, `--prompt`, `--schedule`, `--schedule-hour`, `--gemini-key`, `--r2-account-id`, `--r2-access-key-id`, `--r2-secret-access-key`, `--r2-bucket`, `--r2-public-base-url`, `--defaults`, `--force`
+**Commands implemented:**
 
 `fresco generate`
 - Read config from environment via swift-configuration
 - `--prompt` flag: override `FRESCO_PROMPT` entirely for this run
 - `--append` flag: append text to `FRESCO_PROMPT` for this run
 - Call `GenerateService.generate(prompt:slug:date:)`
-- Write image to `/tmp/fresco/{slug}/{timestamp}.jpg`
+- Write image to `/tmp/{slug}/{timestamp}.{ext}`
 - Print the local file path to stdout
 
 `fresco upload <file> [destination]`

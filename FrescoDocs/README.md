@@ -10,24 +10,24 @@ Fresco is a composable CLI for generating images with the Google Gemini Imagen A
 
 ## How it works
 
-```
+```bash
+# Generate an image locally
 fresco generate
-  → reads config from environment variables
-  → calls Gemini Imagen API
-  → writes image to /tmp
 
+# Generate and upload to R2
 fresco upload $(fresco generate)
-  → uploads to Cloudflare R2
-  → prints the public URL
+
+# Alias the uploaded image to a stable URL
+fresco remote copy 2026-04-02-120000.jpg latest.jpg
 ```
 
-Your project just points at a stable URL:
+Your project points at the stable URL:
 
 ```markdown
 ![Daily Image](https://pub-xxxx.r2.dev/your-project/latest.jpg)
 ```
 
-That image changes every day. You never touch it again.
+A scheduled workflow generates, uploads, and copies to `latest.jpg` — the URL never changes.
 
 ---
 

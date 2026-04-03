@@ -72,7 +72,7 @@ In GitHub Actions, these values come from repository secrets. Locally, they live
 │    └─▶ FrescoCore.GeminiClient              │
 │          POST Gemini Imagen API             │
 │          returns JPEG bytes                 │
-│          writes to /tmp/fresco/{slug}/      │
+│          writes to /tmp/{slug}/      │
 │                                             │
 │  fresco upload <file> [destination]         │
 │    │                                        │
@@ -146,7 +146,7 @@ URLSession-based Gemini Imagen API client. Returns image data. No third-party HT
 S3-compatible client for Cloudflare R2. Uses AWS Signature V4. Supports upload and server-side copy. No third-party SDK.
 
 **`GenerateService`**
-Generates an image using `GeminiClient`, writes it to `/tmp/fresco/{slug}/`, and returns the local file path.
+Generates an image using `GeminiClient`, writes it to `/tmp/{slug}/`, and returns the local file path.
 
 **`UploadService`**
 Uploads a local file to R2 as `{slug}/{filename}` and returns the public URL.

@@ -12,7 +12,7 @@ brew install argylebits/tap/fresco
 
 ### `fresco generate`
 
-Generates an image and writes it to `/tmp`. Prints the local file path.
+Generates an image and writes it to `/tmp/{slug}/`. Prints the local file path.
 
 ```bash
 fresco generate
@@ -21,7 +21,7 @@ fresco generate
 **What it does:**
 1. Reads configuration from environment variables (via swift-configuration)
 2. Calls Gemini Imagen API with the configured prompt (or overridden/appended prompt)
-3. Writes the image to `/tmp/fresco/{slug}/{timestamp}.jpg`
+3. Writes the image to `/tmp/{slug}/{timestamp}.{ext}`
 4. Prints the file path to stdout
 
 **Flags:**
@@ -83,10 +83,10 @@ fresco upload <file> [destination]
 
 ```bash
 # Upload with original filename
-fresco upload /tmp/fresco/my-project/2026-04-02-120000.jpg
+fresco upload /tmp/my-project/2026-04-02-120000.jpg
 
 # Upload as a specific filename
-fresco upload /tmp/fresco/my-project/2026-04-02-120000.jpg latest.jpg
+fresco upload /tmp/my-project/2026-04-02-120000.jpg latest.jpg
 ```
 
 ---
