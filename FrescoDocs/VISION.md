@@ -13,8 +13,9 @@ The name comes from the art form. A fresco is painted fresh each day on wet plas
 Static hero images get stale. Rotating them manually is tedious. AI image generation is powerful but requires infrastructure, scheduling, and storage to use continuously. Fresco handles all of that in a single CLI tool.
 
 ```bash
-fresco init   # set it up once
-fresco generate   # or let GitHub Actions do it every day
+fresco generate                              # create an image
+fresco upload $(fresco generate)             # create and publish
+fresco remote copy dated.jpg latest.jpg      # update the stable URL
 ```
 
 That's it. The image URL never changes. The image does.
@@ -26,9 +27,10 @@ That's it. The image URL never changes. The image does.
 **What it is:** A Swift CLI tool that runs locally or via GitHub Actions.
 
 **How it works:**
-- `fresco init` configures a project — prompt, schedule, credentials
-- `fresco generate` calls Gemini, uploads to R2, updates the gallery
-- GitHub Actions runs `fresco generate` on a daily cron schedule
+- `fresco generate` calls Gemini Imagen and writes the image locally
+- `fresco upload` publishes a local image to Cloudflare R2
+- `fresco remote copy` aliases a dated image to a stable filename (e.g. `latest.jpg`)
+- GitHub Actions composes these commands on a daily cron schedule
 - The project's README points to a stable R2 URL
 
 **Who it's for:** Developers with GitHub repos who want daily images without running any server infrastructure.
@@ -110,8 +112,9 @@ That's it. The image URL never changes. The image does.
 
 ### Now (Phase 1 MVP)
 - [x] Project scaffold and documentation
-- [ ] `fresco init` — interactive and non-interactive project setup
-- [ ] `fresco generate` — Gemini + R2 + gallery update
+- [x] `fresco generate` — Gemini Imagen image generation
+- [x] `fresco upload` — publish images to Cloudflare R2
+- [x] `fresco remote copy` — server-side copy for stable URLs
 - [ ] GitHub Actions workflow generation
 - [ ] Homebrew tap (`brew install argylebits/fresco`)
 - [ ] Fresco using itself — banner + gallery live
