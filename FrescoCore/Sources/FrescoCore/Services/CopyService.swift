@@ -32,7 +32,7 @@ public struct CopyService: Sendable {
 
         let publicURL = baseURL
             .appendingPathComponent(slug)
-            .appendingPathComponent(destinationFilename)
+            .appendingPathComponent(validatedDestination)
 
         return UploadResult(r2Key: destinationKey, publicURL: publicURL)
     }
