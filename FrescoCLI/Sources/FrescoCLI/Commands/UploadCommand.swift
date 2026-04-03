@@ -12,6 +12,9 @@ struct UploadCommand: AsyncParsableCommand {
     @Argument(help: "Path to the image file to upload")
     var filePath: String
 
+    @Argument(help: "Destination filename (defaults to source filename)")
+    var destinationFilename: String?
+
     @Option(name: .long, help: "Project slug for R2 key prefix")
     var slug: String?
 
@@ -39,6 +42,7 @@ struct UploadCommand: AsyncParsableCommand {
 
     enum CodingKeys: String, CodingKey {
         case filePath
+        case destinationFilename
         case slug
         case r2AccountId
         case r2AccessKeyId
@@ -66,7 +70,7 @@ struct UploadCommand: AsyncParsableCommand {
         }
 
         let service = UploadService(r2: deps.r2, publicBaseURL: effectiveR2PublicBaseUrl)
-        let result = try await service.upload(filePath: filePath, slug: effectiveSlug)
+        let result = try await service.upload(filePath: filePath, slug: effectiveSlug, destinationFilename: destinationFilename)
 
         print(result.publicURL.absoluteString)
     }
