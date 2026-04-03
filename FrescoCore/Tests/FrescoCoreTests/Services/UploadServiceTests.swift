@@ -216,6 +216,44 @@ struct UploadServiceTests {
         }
     }
 
+    @Test("upload throws on path traversal in destinationFilename")
+    func uploadThrowsOnPathTraversal() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let service = UploadService(
+            r2: MockR2Client(),
+            publicBaseURL: Self.testPublicBaseURL
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.upload(
+                filePath: filePath,
+                slug: Self.testSlug,
+                destinationFilename: "../evil.jpg"
+            )
+        }
+    }
+
+    @Test("upload throws on slash in destinationFilename")
+    func uploadThrowsOnSlashInDestinationFilename() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let service = UploadService(
+            r2: MockR2Client(),
+            publicBaseURL: Self.testPublicBaseURL
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.upload(
+                filePath: filePath,
+                slug: Self.testSlug,
+                destinationFilename: "sub/evil.jpg"
+            )
+        }
+    }
+
     @Test("upload throws on invalid slug")
     func uploadThrowsOnInvalidSlug() async throws {
         let (filePath, tmpSlug) = try writeTempFile()

@@ -22,16 +22,11 @@ public struct CopyService: Sendable {
             throw FrescoError.configurationError("Invalid publicBaseURL: \(publicBaseURL)")
         }
 
-        guard !sourceFilename.isEmpty, sourceFilename != ".", sourceFilename != ".." else {
-            throw FrescoError.configurationError("Invalid source filename: \(sourceFilename)")
-        }
+        let validatedSource = try FilenameValidator.validate(sourceFilename)
+        let validatedDestination = try FilenameValidator.validate(destinationFilename)
 
-        guard !destinationFilename.isEmpty, destinationFilename != ".", destinationFilename != ".." else {
-            throw FrescoError.configurationError("Invalid destination filename: \(destinationFilename)")
-        }
-
-        let sourceKey = "\(slug)/\(sourceFilename)"
-        let destinationKey = "\(slug)/\(destinationFilename)"
+        let sourceKey = "\(slug)/\(validatedSource)"
+        let destinationKey = "\(slug)/\(validatedDestination)"
 
         try await r2.copy(sourceKey: sourceKey, destinationKey: destinationKey)
 

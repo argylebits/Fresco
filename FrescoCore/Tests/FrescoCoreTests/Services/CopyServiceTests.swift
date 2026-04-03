@@ -115,6 +115,38 @@ struct CopyServiceTests {
         }
     }
 
+    @Test("copy throws on path traversal in source filename")
+    func copyThrowsOnSourcePathTraversal() async throws {
+        let service = CopyService(
+            r2: MockR2Client(),
+            publicBaseURL: Self.testPublicBaseURL
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.copy(
+                sourceFilename: "../evil.jpg",
+                destinationFilename: "latest.jpg",
+                slug: Self.testSlug
+            )
+        }
+    }
+
+    @Test("copy throws on slash in destination filename")
+    func copyThrowsOnSlashInDestination() async throws {
+        let service = CopyService(
+            r2: MockR2Client(),
+            publicBaseURL: Self.testPublicBaseURL
+        )
+
+        await #expect(throws: FrescoError.self) {
+            try await service.copy(
+                sourceFilename: "source.jpg",
+                destinationFilename: "sub/latest.jpg",
+                slug: Self.testSlug
+            )
+        }
+    }
+
     @Test("copy throws on empty destination filename")
     func copyThrowsOnEmptyDestination() async throws {
         let service = CopyService(
