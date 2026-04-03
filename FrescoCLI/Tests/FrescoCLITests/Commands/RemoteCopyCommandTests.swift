@@ -22,6 +22,23 @@ struct RemoteCopyCommandTests {
         #expect(cmd.slug == "my-slug")
     }
 
+    @Test func command_parsesR2Flags() throws {
+        let cmd = try RemoteCopyCommand.parse([
+            "source.jpg",
+            "dest.jpg",
+            "--r2-account-id", "account-id",
+            "--r2-access-key-id", "access-key-id",
+            "--r2-secret-access-key", "secret-access-key",
+            "--r2-bucket", "bucket-name",
+            "--r2-public-base-url", "https://cdn.example.com",
+        ])
+        #expect(cmd.r2AccountId == "account-id")
+        #expect(cmd.r2AccessKeyId == "access-key-id")
+        #expect(cmd.r2SecretAccessKey == "secret-access-key")
+        #expect(cmd.r2Bucket == "bucket-name")
+        #expect(cmd.r2PublicBaseUrl == "https://cdn.example.com")
+    }
+
     @Test func run_copiesAndPrintsURL() async throws {
         let receivedSourceKey = Mutex<String?>(nil)
         let receivedDestinationKey = Mutex<String?>(nil)

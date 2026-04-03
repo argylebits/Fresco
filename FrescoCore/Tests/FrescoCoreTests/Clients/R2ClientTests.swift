@@ -140,10 +140,46 @@ struct R2ClientTests {
         )
 
         #expect(request.value(forHTTPHeaderField: "x-amz-date") == "20260324T120000Z")
-        #expect(request.value(forHTTPHeaderField: "x-amz-content-sha256") != nil)
+        #expect(
+            request.value(forHTTPHeaderField: "x-amz-content-sha256")
+                == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        )
+
         let auth = request.value(forHTTPHeaderField: "Authorization")
-        #expect(auth?.hasPrefix("AWS4-HMAC-SHA256 Credential=test-key-id/20260324/auto/s3/aws4_request") == true)
-        #expect(auth?.contains("SignedHeaders=") == true)
+        #expect(auth?.contains("Credential=test-key-id/20260324/auto/s3/aws4_request") == true)
+        #expect(
+            auth?.contains("SignedHeaders=host;x-amz-content-sha256;x-amz-copy-source;x-amz-date") == true
+        )
+    }
+
+    @Test func buildCopyRequest_signatureIsDeterministic() throws {
+        let client = makeClient()
+        let request1 = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            date: fixedDate
+        )
+        let request2 = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            date: fixedDate
+        )
+
+        #expect(
+            request1.value(forHTTPHeaderField: "Authorization")
+                == request2.value(forHTTPHeaderField: "Authorization")
+        )
+    }
+
+    @Test func buildCopyRequest_encodesSpecialCharactersInSource() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/my folder/source.jpg",
+            destinationKey: "images/dest.jpg",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "x-amz-copy-source") == "/test-bucket/images/my%20folder/source.jpg")
     }
 
     @Test func handleResponse_successDoesNotThrow() throws {
@@ -163,7 +199,7 @@ struct R2ClientTests {
             try client.handleResponse(data: Data("forbidden".utf8), response: response)
             Issue.record("Expected error")
         } catch {
-            if case .r2UploadError(let message) = error {
+            if case .r2Error(let message) = error {
                 #expect(message.contains("403"))
                 #expect(message.contains("forbidden"))
             } else {

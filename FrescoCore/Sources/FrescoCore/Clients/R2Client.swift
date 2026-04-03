@@ -42,7 +42,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
         do {
             (responseData, response) = try await session.data(for: request)
         } catch {
-            throw .r2UploadError("R2 upload failed: \(error.localizedDescription)")
+            throw .r2Error("R2 upload failed: \(error.localizedDescription)")
         }
 
         try handleResponse(data: responseData, response: response)
@@ -61,23 +61,10 @@ public struct R2Client: R2ClientProtocol, Sendable {
         do {
             (responseData, response) = try await session.data(for: request)
         } catch {
-            throw .r2CopyError("R2 copy failed: \(error.localizedDescription)")
+            throw .r2Error("R2 copy failed: \(error.localizedDescription)")
         }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw .r2CopyError("Invalid response")
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let bodyText = String(data: responseData, encoding: .utf8)
-            let message: String
-            if let bodyText, !bodyText.isEmpty {
-                message = "HTTP \(httpResponse.statusCode): \(bodyText)"
-            } else {
-                message = "HTTP \(httpResponse.statusCode)"
-            }
-            throw .r2CopyError(message)
-        }
+        try handleResponse(data: responseData, response: response)
     }
 
     func buildCopyRequest(
@@ -88,7 +75,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
         let host = "\(accountId).r2.cloudflarestorage.com"
 
         guard let baseURL = URL(string: "https://\(host)") else {
-            throw .r2CopyError("Invalid R2 endpoint URL")
+            throw .r2Error("Invalid R2 endpoint URL")
         }
 
         let url = baseURL.appendingPathComponent(bucket).appendingPathComponent(destinationKey)
@@ -102,7 +89,8 @@ public struct R2Client: R2ClientProtocol, Sendable {
         )
         let dateStamp = String(amzDate.prefix(8))
 
-        let copySource = "/\(bucket)/\(sourceKey)"
+        let rawCopySource = "/\(bucket)/\(sourceKey)"
+        let copySource = rawCopySource.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? rawCopySource
         let payloadHash = sha256Hex(Data())
 
         var request = URLRequest(url: url)
@@ -166,7 +154,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
         let host = "\(accountId).r2.cloudflarestorage.com"
 
         guard let baseURL = URL(string: "https://\(host)") else {
-            throw .r2UploadError("Invalid R2 endpoint URL")
+            throw .r2Error("Invalid R2 endpoint URL")
         }
 
         let url = baseURL.appendingPathComponent(bucket).appendingPathComponent(key)
@@ -238,7 +226,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
 
     func handleResponse(data: Data, response: URLResponse) throws(FrescoError) {
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw .r2UploadError("Invalid response")
+            throw .r2Error("Invalid response")
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
@@ -249,7 +237,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
             } else {
                 message = "HTTP \(httpResponse.statusCode)"
             }
-            throw .r2UploadError(message)
+            throw .r2Error(message)
         }
     }
 

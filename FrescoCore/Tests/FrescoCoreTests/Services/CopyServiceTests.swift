@@ -50,7 +50,7 @@ struct CopyServiceTests {
     @Test("copy throws when R2 fails")
     func copyThrowsOnR2Error() async throws {
         let service = CopyService(
-            r2: MockR2Client(shouldThrow: .r2CopyError("copy failed")),
+            r2: MockR2Client(shouldThrow: .r2Error("copy failed")),
             publicBaseURL: Self.testPublicBaseURL
         )
 

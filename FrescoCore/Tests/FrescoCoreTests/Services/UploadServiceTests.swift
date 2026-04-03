@@ -103,7 +103,7 @@ struct UploadServiceTests {
         defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
 
         let service = UploadService(
-            r2: MockR2Client(shouldThrow: .r2UploadError("upload failed")),
+            r2: MockR2Client(shouldThrow: .r2Error("upload failed")),
             publicBaseURL: Self.testPublicBaseURL
         )
 
