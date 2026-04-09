@@ -227,6 +227,64 @@ struct R2ClientTests {
         )
     }
 
+    @Test func buildHeadRequest_constructsCorrectURL() throws {
+        let client = makeClient()
+        let request = try client.buildHeadRequest(
+            key: "images/source.jpg",
+            date: fixedDate
+        )
+
+        #expect(request.url?.absoluteString == "https://test-account.r2.cloudflarestorage.com/test-bucket/images/source.jpg")
+        #expect(request.httpMethod == "HEAD")
+    }
+
+    @Test func buildHeadRequest_signsWithAWSV4() throws {
+        let client = makeClient()
+        let request = try client.buildHeadRequest(
+            key: "images/source.jpg",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "x-amz-date") == "20260324T120000Z")
+        #expect(
+            request.value(forHTTPHeaderField: "x-amz-content-sha256")
+                == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        )
+
+        let auth = request.value(forHTTPHeaderField: "Authorization")
+        #expect(auth?.contains("Credential=test-key-id/20260324/auto/s3/aws4_request") == true)
+        #expect(auth?.contains("SignedHeaders=host;x-amz-content-sha256;x-amz-date") == true)
+    }
+
+    @Test func buildCopyRequest_setsContentTypeWhenProvided() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            cacheControl: "public, max-age=300",
+            contentType: "image/png",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "image/png")
+    }
+
+    @Test func buildCopyRequest_includesContentTypeInSignedHeaders() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            cacheControl: "public, max-age=300",
+            contentType: "image/png",
+            date: fixedDate
+        )
+
+        let auth = request.value(forHTTPHeaderField: "Authorization")
+        #expect(
+            auth?.contains("SignedHeaders=cache-control;content-type;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive") == true
+        )
+    }
+
     @Test func handleResponse_successDoesNotThrow() throws {
         let client = makeClient()
         let url = URL(string: "https://example.com")!
