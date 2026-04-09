@@ -50,10 +50,14 @@ public struct R2Client: R2ClientProtocol, Sendable {
 
     public func copy(
         sourceKey: String,
-        destinationKey: String
+        destinationKey: String,
+        cacheControl: String?
     ) async throws(FrescoError) {
         let request = try buildCopyRequest(
-            sourceKey: sourceKey, destinationKey: destinationKey, date: Date()
+            sourceKey: sourceKey,
+            destinationKey: destinationKey,
+            cacheControl: cacheControl,
+            date: Date()
         )
 
         let responseData: Data
@@ -70,6 +74,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
     func buildCopyRequest(
         sourceKey: String,
         destinationKey: String,
+        cacheControl: String?,
         date: Date
     ) throws(FrescoError) -> URLRequest {
         let host = "\(accountId).r2.cloudflarestorage.com"
@@ -100,13 +105,31 @@ public struct R2Client: R2ClientProtocol, Sendable {
         request.setValue(amzDate, forHTTPHeaderField: "x-amz-date")
         request.setValue(payloadHash, forHTTPHeaderField: "x-amz-content-sha256")
 
-        let signedHeaders = "host;x-amz-content-sha256;x-amz-copy-source;x-amz-date"
-        let canonicalHeaders = [
-            "host:\(host)",
-            "x-amz-content-sha256:\(payloadHash)",
-            "x-amz-copy-source:\(copySource)",
-            "x-amz-date:\(amzDate)\n",
-        ].joined(separator: "\n")
+        let signedHeaders: String
+        let canonicalHeaders: String
+
+        if let cacheControl {
+            request.setValue(cacheControl, forHTTPHeaderField: "Cache-Control")
+            request.setValue("REPLACE", forHTTPHeaderField: "x-amz-metadata-directive")
+
+            signedHeaders = "cache-control;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
+            canonicalHeaders = [
+                "cache-control:\(cacheControl)",
+                "host:\(host)",
+                "x-amz-content-sha256:\(payloadHash)",
+                "x-amz-copy-source:\(copySource)",
+                "x-amz-date:\(amzDate)",
+                "x-amz-metadata-directive:REPLACE\n",
+            ].joined(separator: "\n")
+        } else {
+            signedHeaders = "host;x-amz-content-sha256;x-amz-copy-source;x-amz-date"
+            canonicalHeaders = [
+                "host:\(host)",
+                "x-amz-content-sha256:\(payloadHash)",
+                "x-amz-copy-source:\(copySource)",
+                "x-amz-date:\(amzDate)\n",
+            ].joined(separator: "\n")
+        }
 
         let canonicalRequest = [
             "PUT",

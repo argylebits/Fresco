@@ -113,6 +113,7 @@ struct R2ClientTests {
         let request = try client.buildCopyRequest(
             sourceKey: "images/source.jpg",
             destinationKey: "images/dest.jpg",
+            cacheControl: nil,
             date: fixedDate
         )
 
@@ -125,6 +126,7 @@ struct R2ClientTests {
         let request = try client.buildCopyRequest(
             sourceKey: "images/source.jpg",
             destinationKey: "images/dest.jpg",
+            cacheControl: nil,
             date: fixedDate
         )
 
@@ -136,6 +138,7 @@ struct R2ClientTests {
         let request = try client.buildCopyRequest(
             sourceKey: "images/source.jpg",
             destinationKey: "images/dest.jpg",
+            cacheControl: nil,
             date: fixedDate
         )
 
@@ -157,11 +160,13 @@ struct R2ClientTests {
         let request1 = try client.buildCopyRequest(
             sourceKey: "images/source.jpg",
             destinationKey: "images/dest.jpg",
+            cacheControl: nil,
             date: fixedDate
         )
         let request2 = try client.buildCopyRequest(
             sourceKey: "images/source.jpg",
             destinationKey: "images/dest.jpg",
+            cacheControl: nil,
             date: fixedDate
         )
 
@@ -176,10 +181,50 @@ struct R2ClientTests {
         let request = try client.buildCopyRequest(
             sourceKey: "images/my folder/source.jpg",
             destinationKey: "images/dest.jpg",
+            cacheControl: nil,
             date: fixedDate
         )
 
         #expect(request.value(forHTTPHeaderField: "x-amz-copy-source") == "/test-bucket/images/my%20folder/source.jpg")
+    }
+
+    @Test func buildCopyRequest_setsCacheControlHeader() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            cacheControl: "public, max-age=300",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "Cache-Control") == "public, max-age=300")
+    }
+
+    @Test func buildCopyRequest_setsMetadataDirectiveReplace() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            cacheControl: "public, max-age=300",
+            date: fixedDate
+        )
+
+        #expect(request.value(forHTTPHeaderField: "x-amz-metadata-directive") == "REPLACE")
+    }
+
+    @Test func buildCopyRequest_signsWithCacheControlHeaders() throws {
+        let client = makeClient()
+        let request = try client.buildCopyRequest(
+            sourceKey: "images/source.jpg",
+            destinationKey: "images/dest.jpg",
+            cacheControl: "public, max-age=300",
+            date: fixedDate
+        )
+
+        let auth = request.value(forHTTPHeaderField: "Authorization")
+        #expect(
+            auth?.contains("SignedHeaders=cache-control;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive") == true
+        )
     }
 
     @Test func handleResponse_successDoesNotThrow() throws {
