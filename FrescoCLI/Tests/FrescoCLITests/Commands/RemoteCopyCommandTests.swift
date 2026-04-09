@@ -48,7 +48,7 @@ struct RemoteCopyCommandTests {
                 "frescoSlug": "test-slug",
                 "r2.publicBaseUrl": "https://cdn.example.com",
             ])),
-            r2: MockCLIR2Client(onCopy: { source, destination in
+            r2: MockCLIR2Client(onCopy: { source, destination, _ in
                 receivedSourceKey.withLock { $0 = source }
                 receivedDestinationKey.withLock { $0 = destination }
             })
@@ -66,7 +66,7 @@ struct RemoteCopyCommandTests {
                 "frescoSlug": "config-slug",
                 "r2.publicBaseUrl": "https://cdn.example.com",
             ])),
-            r2: MockCLIR2Client(onCopy: { source, _ in
+            r2: MockCLIR2Client(onCopy: { source, _, _ in
                 receivedSourceKey.withLock { $0 = source }
             })
         )
@@ -98,5 +98,36 @@ struct RemoteCopyCommandTests {
         await #expect(throws: FrescoError.self) {
             try await cmd.run()
         }
+    }
+    
+    @Test func command_parsesCacheControlFlag() throws {
+        let cmd = try RemoteCopyCommand.parse([
+            "source.jpg", "dest.jpg", "--cache-control", "public, max-age=300",
+        ])
+        #expect(cmd.cacheControl == "public, max-age=300")
+    }
+    
+    @Test func command_cacheControlDefaultsToNil() throws {
+        let cmd = try RemoteCopyCommand.parse(["source.jpg", "dest.jpg"])
+        #expect(cmd.cacheControl == nil)
+    }
+    
+    @Test func run_passesCacheControlToService() async throws {
+        let receivedCacheControl = Mutex<String?>(nil)
+        var cmd = try RemoteCopyCommand.parse([
+            "2026-04-02-150000.jpg", "latest.jpg",
+            "--cache-control", "public, max-age=300",
+        ])
+        cmd.overrideDependencies = RemoteCopyCommand.Dependencies(
+            configReader: ConfigReader(provider: InMemoryProvider(values: [
+                "frescoSlug": "test-slug",
+                "r2.publicBaseUrl": "https://cdn.example.com",
+            ])),
+            r2: MockCLIR2Client(onCopy: { _, _, cacheControl in
+                receivedCacheControl.withLock { $0 = cacheControl }
+            })
+        )
+        try await cmd.run()
+        #expect(receivedCacheControl.withLock { $0 } == "public, max-age=300")
     }
 }

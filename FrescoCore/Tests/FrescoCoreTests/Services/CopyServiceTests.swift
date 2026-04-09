@@ -13,7 +13,7 @@ struct CopyServiceTests {
     func copySendsCorrectKeys() async throws {
         let receivedSourceKey = Mutex<String?>(nil)
         let receivedDestinationKey = Mutex<String?>(nil)
-        let r2 = MockR2Client(onCopy: { source, destination in
+        let r2 = MockR2Client(onCopy: { source, destination, _ in
             receivedSourceKey.withLock { $0 = source }
             receivedDestinationKey.withLock { $0 = destination }
         })
@@ -82,7 +82,7 @@ struct CopyServiceTests {
     @Test("copy throws on invalid publicBaseURL")
     func copyThrowsOnInvalidBaseURL() async throws {
         let copyCalled = Mutex(false)
-        let r2 = MockR2Client(onCopy: { _, _ in
+        let r2 = MockR2Client(onCopy: { _, _, _ in
             copyCalled.withLock { $0 = true }
         })
 
@@ -161,5 +161,42 @@ struct CopyServiceTests {
                 slug: Self.testSlug
             )
         }
+    }
+    
+    @Test("copy passes cacheControl to R2 client")
+    func copyPassesCacheControl() async throws {
+        let receivedCacheControl = Mutex<String?>(nil)
+        let r2 = MockR2Client(onCopy: { _, _, cacheControl in
+            receivedCacheControl.withLock { $0 = cacheControl }
+        })
+
+        let service = CopyService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
+
+        _ = try await service.copy(
+            sourceFilename: "2026-04-02-150000.jpg",
+            destinationFilename: "latest.jpg",
+            slug: Self.testSlug,
+            cacheControl: "public, max-age=300"
+        )
+
+        #expect(receivedCacheControl.withLock { $0 } == "public, max-age=300")
+    }
+    
+    @Test("copy passes nil cacheControl by default")
+    func copyPassesNilCacheControlByDefault() async throws {
+        let receivedCacheControl = Mutex<String?>("sentinel")
+        let r2 = MockR2Client(onCopy: { _, _, cacheControl in
+            receivedCacheControl.withLock { $0 = cacheControl }
+        })
+
+        let service = CopyService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
+
+        _ = try await service.copy(
+            sourceFilename: "2026-04-02-150000.jpg",
+            destinationFilename: "latest.jpg",
+            slug: Self.testSlug
+        )
+
+        #expect(receivedCacheControl.withLock { $0 } == nil)
     }
 }
