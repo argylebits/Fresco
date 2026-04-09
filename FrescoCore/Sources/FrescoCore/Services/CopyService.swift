@@ -9,7 +9,7 @@ public struct CopyService: Sendable {
         self.publicBaseURL = publicBaseURL
     }
 
-    public func copy(sourceFilename: String, destinationFilename: String, slug: String) async throws(FrescoError) -> UploadResult {
+    public func copy(sourceFilename: String, destinationFilename: String, slug: String, cacheControl: String? = nil) async throws(FrescoError) -> UploadResult {
         let slug = try SlugValidator.validate(slug)
 
         guard
@@ -28,7 +28,7 @@ public struct CopyService: Sendable {
         let sourceKey = "\(slug)/\(validatedSource)"
         let destinationKey = "\(slug)/\(validatedDestination)"
 
-        try await r2.copy(sourceKey: sourceKey, destinationKey: destinationKey)
+        try await r2.copy(sourceKey: sourceKey, destinationKey: destinationKey, cacheControl: cacheControl)
 
         let publicURL = baseURL
             .appendingPathComponent(slug)

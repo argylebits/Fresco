@@ -32,6 +32,9 @@ struct RemoteCopyCommand: AsyncParsableCommand {
 
     @Option(name: .long, help: "R2 public base URL for uploaded images")
     var r2PublicBaseUrl: String?
+    
+    @Option(name: .long, help: "Cache-Control header for the destination object")
+    var cacheControl: String?
 
     struct Dependencies: Sendable {
         let configReader: ConfigReader
@@ -49,6 +52,7 @@ struct RemoteCopyCommand: AsyncParsableCommand {
         case r2SecretAccessKey
         case r2Bucket
         case r2PublicBaseUrl
+        case cacheControl
     }
 
     mutating func run() async throws {
@@ -73,7 +77,8 @@ struct RemoteCopyCommand: AsyncParsableCommand {
         let result = try await service.copy(
             sourceFilename: sourceFilename,
             destinationFilename: destinationFilename,
-            slug: effectiveSlug
+            slug: effectiveSlug,
+            cacheControl: cacheControl
         )
 
         print(result.publicURL.absoluteString)
