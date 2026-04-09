@@ -53,10 +53,17 @@ public struct R2Client: R2ClientProtocol, Sendable {
         destinationKey: String,
         cacheControl: String?
     ) async throws(FrescoError) {
+        var contentType: String?
+        if cacheControl != nil {
+            let headResponse = try await headObject(key: sourceKey)
+            contentType = headResponse.value(forHTTPHeaderField: "Content-Type")
+        }
+
         let request = try buildCopyRequest(
             sourceKey: sourceKey,
             destinationKey: destinationKey,
             cacheControl: cacheControl,
+            contentType: contentType,
             date: Date()
         )
 
@@ -75,6 +82,7 @@ public struct R2Client: R2ClientProtocol, Sendable {
         sourceKey: String,
         destinationKey: String,
         cacheControl: String?,
+        contentType: String? = nil,
         date: Date
     ) throws(FrescoError) -> URLRequest {
         let host = "\(accountId).r2.cloudflarestorage.com"
@@ -112,15 +120,30 @@ public struct R2Client: R2ClientProtocol, Sendable {
             request.setValue(cacheControl, forHTTPHeaderField: "Cache-Control")
             request.setValue("REPLACE", forHTTPHeaderField: "x-amz-metadata-directive")
 
-            signedHeaders = "cache-control;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
-            canonicalHeaders = [
-                "cache-control:\(cacheControl)",
-                "host:\(host)",
-                "x-amz-content-sha256:\(payloadHash)",
-                "x-amz-copy-source:\(copySource)",
-                "x-amz-date:\(amzDate)",
-                "x-amz-metadata-directive:REPLACE\n",
-            ].joined(separator: "\n")
+            if let contentType {
+                request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+
+                signedHeaders = "cache-control;content-type;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
+                canonicalHeaders = [
+                    "cache-control:\(cacheControl)",
+                    "content-type:\(contentType)",
+                    "host:\(host)",
+                    "x-amz-content-sha256:\(payloadHash)",
+                    "x-amz-copy-source:\(copySource)",
+                    "x-amz-date:\(amzDate)",
+                    "x-amz-metadata-directive:REPLACE\n",
+                ].joined(separator: "\n")
+            } else {
+                signedHeaders = "cache-control;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
+                canonicalHeaders = [
+                    "cache-control:\(cacheControl)",
+                    "host:\(host)",
+                    "x-amz-content-sha256:\(payloadHash)",
+                    "x-amz-copy-source:\(copySource)",
+                    "x-amz-date:\(amzDate)",
+                    "x-amz-metadata-directive:REPLACE\n",
+                ].joined(separator: "\n")
+            }
         } else {
             signedHeaders = "host;x-amz-content-sha256;x-amz-copy-source;x-amz-date"
             canonicalHeaders = [
@@ -133,6 +156,96 @@ public struct R2Client: R2ClientProtocol, Sendable {
 
         let canonicalRequest = [
             "PUT",
+            path,
+            "",
+            canonicalHeaders,
+            signedHeaders,
+            payloadHash,
+        ].joined(separator: "\n")
+
+        let region = "auto"
+        let service = "s3"
+        let credentialScope = "\(dateStamp)/\(region)/\(service)/aws4_request"
+
+        let stringToSign = [
+            "AWS4-HMAC-SHA256",
+            amzDate,
+            credentialScope,
+            sha256Hex(Data(canonicalRequest.utf8)),
+        ].joined(separator: "\n")
+
+        let signingKey = deriveSigningKey(
+            secretKey: secretAccessKey,
+            dateStamp: dateStamp,
+            region: region,
+            service: service
+        )
+
+        let signature = hmacSHA256Hex(key: signingKey, data: Data(stringToSign.utf8))
+
+        let authorization =
+            "AWS4-HMAC-SHA256 Credential=\(accessKeyId)/\(credentialScope), SignedHeaders=\(signedHeaders), Signature=\(signature)"
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+
+        return request
+    }
+
+    private func headObject(key: String) async throws(FrescoError) -> HTTPURLResponse {
+        let request = try buildHeadRequest(key: key, date: Date())
+
+        let response: URLResponse
+        do {
+            (_, response) = try await session.data(for: request)
+        } catch {
+            throw .r2Error("R2 HEAD failed: \(error.localizedDescription)")
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw .r2Error("R2 HEAD failed")
+        }
+
+        return httpResponse
+    }
+
+    func buildHeadRequest(
+        key: String,
+        date: Date
+    ) throws(FrescoError) -> URLRequest {
+        let host = "\(accountId).r2.cloudflarestorage.com"
+
+        guard let baseURL = URL(string: "https://\(host)") else {
+            throw .r2Error("Invalid R2 endpoint URL")
+        }
+
+        let url = baseURL.appendingPathComponent(bucket).appendingPathComponent(key)
+        let path = url.path(percentEncoded: true)
+
+        let amzDate = date.formatted(
+            .iso8601.year().month().day()
+                .time(includingFractionalSeconds: false)
+                .timeSeparator(.omitted).dateSeparator(.omitted)
+                .timeZone(separator: .omitted)
+        )
+        let dateStamp = String(amzDate.prefix(8))
+
+        let payloadHash = sha256Hex(Data())
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.setValue(host, forHTTPHeaderField: "Host")
+        request.setValue(amzDate, forHTTPHeaderField: "x-amz-date")
+        request.setValue(payloadHash, forHTTPHeaderField: "x-amz-content-sha256")
+
+        let signedHeaders = "host;x-amz-content-sha256;x-amz-date"
+        let canonicalHeaders = [
+            "host:\(host)",
+            "x-amz-content-sha256:\(payloadHash)",
+            "x-amz-date:\(amzDate)\n",
+        ].joined(separator: "\n")
+
+        let canonicalRequest = [
+            "HEAD",
             path,
             "",
             canonicalHeaders,
