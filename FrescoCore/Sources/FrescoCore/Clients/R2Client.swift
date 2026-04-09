@@ -85,6 +85,10 @@ public struct R2Client: R2ClientProtocol, Sendable {
         contentType: String? = nil,
         date: Date
     ) throws(FrescoError) -> URLRequest {
+        if contentType != nil && cacheControl == nil {
+            throw .r2Error("contentType requires cacheControl when building a copy request")
+        }
+
         let host = "\(accountId).r2.cloudflarestorage.com"
 
         guard let baseURL = URL(string: "https://\(host)") else {
@@ -193,16 +197,18 @@ public struct R2Client: R2ClientProtocol, Sendable {
     private func headObject(key: String) async throws(FrescoError) -> HTTPURLResponse {
         let request = try buildHeadRequest(key: key, date: Date())
 
+        let responseData: Data
         let response: URLResponse
         do {
-            (_, response) = try await session.data(for: request)
+            (responseData, response) = try await session.data(for: request)
         } catch {
             throw .r2Error("R2 HEAD failed: \(error.localizedDescription)")
         }
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw .r2Error("R2 HEAD failed")
+        try handleResponse(data: responseData, response: response)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw .r2Error("R2 HEAD failed: invalid response")
         }
 
         return httpResponse
