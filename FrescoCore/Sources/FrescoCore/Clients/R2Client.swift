@@ -5,6 +5,11 @@ import Foundation
 import FoundationNetworking
 #endif
 
+struct MetadataOverride: Sendable {
+    let cacheControl: String
+    let contentType: String
+}
+
 public struct R2Client: R2ClientProtocol, Sendable {
     let accountId: String
     let accessKeyId: String
@@ -53,17 +58,17 @@ public struct R2Client: R2ClientProtocol, Sendable {
         destinationKey: String,
         cacheControl: String?
     ) async throws(FrescoError) {
-        var contentType: String?
-        if cacheControl != nil {
+        var metadataOverride: MetadataOverride?
+        if let cacheControl {
             let headResponse = try await headObject(key: sourceKey)
-            contentType = headResponse.value(forHTTPHeaderField: "Content-Type")
+            let contentType = headResponse.value(forHTTPHeaderField: "Content-Type") ?? "application/octet-stream"
+            metadataOverride = MetadataOverride(cacheControl: cacheControl, contentType: contentType)
         }
 
         let request = try buildCopyRequest(
             sourceKey: sourceKey,
             destinationKey: destinationKey,
-            cacheControl: cacheControl,
-            contentType: contentType,
+            metadataOverride: metadataOverride,
             date: Date()
         )
 
@@ -81,14 +86,9 @@ public struct R2Client: R2ClientProtocol, Sendable {
     func buildCopyRequest(
         sourceKey: String,
         destinationKey: String,
-        cacheControl: String?,
-        contentType: String? = nil,
+        metadataOverride: MetadataOverride? = nil,
         date: Date
     ) throws(FrescoError) -> URLRequest {
-        if contentType != nil && cacheControl == nil {
-            throw .r2Error("contentType requires cacheControl when building a copy request")
-        }
-
         let host = "\(accountId).r2.cloudflarestorage.com"
 
         guard let baseURL = URL(string: "https://\(host)") else {
@@ -120,34 +120,21 @@ public struct R2Client: R2ClientProtocol, Sendable {
         let signedHeaders: String
         let canonicalHeaders: String
 
-        if let cacheControl {
-            request.setValue(cacheControl, forHTTPHeaderField: "Cache-Control")
+        if let metadataOverride {
+            request.setValue(metadataOverride.cacheControl, forHTTPHeaderField: "Cache-Control")
+            request.setValue(metadataOverride.contentType, forHTTPHeaderField: "Content-Type")
             request.setValue("REPLACE", forHTTPHeaderField: "x-amz-metadata-directive")
 
-            if let contentType {
-                request.setValue(contentType, forHTTPHeaderField: "Content-Type")
-
-                signedHeaders = "cache-control;content-type;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
-                canonicalHeaders = [
-                    "cache-control:\(cacheControl)",
-                    "content-type:\(contentType)",
-                    "host:\(host)",
-                    "x-amz-content-sha256:\(payloadHash)",
-                    "x-amz-copy-source:\(copySource)",
-                    "x-amz-date:\(amzDate)",
-                    "x-amz-metadata-directive:REPLACE\n",
-                ].joined(separator: "\n")
-            } else {
-                signedHeaders = "cache-control;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
-                canonicalHeaders = [
-                    "cache-control:\(cacheControl)",
-                    "host:\(host)",
-                    "x-amz-content-sha256:\(payloadHash)",
-                    "x-amz-copy-source:\(copySource)",
-                    "x-amz-date:\(amzDate)",
-                    "x-amz-metadata-directive:REPLACE\n",
-                ].joined(separator: "\n")
-            }
+            signedHeaders = "cache-control;content-type;host;x-amz-content-sha256;x-amz-copy-source;x-amz-date;x-amz-metadata-directive"
+            canonicalHeaders = [
+                "cache-control:\(metadataOverride.cacheControl)",
+                "content-type:\(metadataOverride.contentType)",
+                "host:\(host)",
+                "x-amz-content-sha256:\(payloadHash)",
+                "x-amz-copy-source:\(copySource)",
+                "x-amz-date:\(amzDate)",
+                "x-amz-metadata-directive:REPLACE\n",
+            ].joined(separator: "\n")
         } else {
             signedHeaders = "host;x-amz-content-sha256;x-amz-copy-source;x-amz-date"
             canonicalHeaders = [
