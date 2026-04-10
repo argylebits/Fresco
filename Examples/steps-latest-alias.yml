@@ -31,7 +31,7 @@
         run: |
           URL="${{ steps.fresco.outputs.url }}"
           FILENAME=$(basename "$URL")
-          fresco remote copy "$FILENAME" "latest.${FILENAME##*.}"
+          fresco remote copy "$FILENAME" "latest.${FILENAME##*.}" --cache-control "public, max-age=300"
         env:
           FRESCO_SLUG:           ${{ secrets.FRESCO_SLUG }}
           R2_ACCOUNT_ID:         ${{ secrets.R2_ACCOUNT_ID }}

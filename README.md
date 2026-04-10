@@ -51,8 +51,9 @@ fresco generate --append "Celebrating release v2.1.0"    # extend configured pro
 Uploads a local image to R2. Prints the public URL.
 
 ```bash
-fresco upload /tmp/my-project/2026-04-02-120000.png             # keep original filename
-fresco upload /tmp/my-project/2026-04-02-120000.png latest.png  # upload as latest.png
+fresco upload /tmp/my-project/2026-04-02-120000.png                                        # keep original filename
+fresco upload /tmp/my-project/2026-04-02-120000.png latest.png                               # upload as latest.png
+fresco upload /tmp/my-project/2026-04-02-120000.png --cache-control "public, max-age=300"    # custom cache policy
 ```
 
 R2 key and public URL are composed as:
@@ -68,6 +69,7 @@ Copies an object within R2 (server-side, no download).
 
 ```bash
 fresco remote copy 2026-04-02-120000.png latest.png
+fresco remote copy 2026-04-02-120000.png latest.png --cache-control "public, max-age=300"  # override cache policy
 ```
 
 ### Composable workflows
@@ -87,7 +89,7 @@ fresco upload $(fresco generate)
 # Generate, upload dated, then alias to latest (preserves extension)
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}" --cache-control "public, max-age=300"
 ```
 
 Use `basename` to extract the filename from a local path, and `${IMAGE##*.}` to extract the extension — this ensures the stable alias always matches the actual image format.
@@ -118,6 +120,7 @@ See [`fresco.template.env`](fresco.template.env) for the full variable list.
 | `--r2-secret-access-key` | `R2_SECRET_ACCESS_KEY` | R2 secret access key |
 | `--r2-bucket` | `R2_BUCKET` | R2 bucket name |
 | `--r2-public-base-url` | `R2_PUBLIC_BASE_URL` | Public base URL for R2 images |
+| `--cache-control` | — | Cache-Control header (`upload` default: `public, max-age=31536000`; `remote copy` inherits source metadata if omitted) |
 
 ---
 
