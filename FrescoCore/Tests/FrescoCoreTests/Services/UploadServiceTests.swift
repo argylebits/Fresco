@@ -254,6 +254,47 @@ struct UploadServiceTests {
         }
     }
 
+    @Test("upload uses custom cacheControl when provided")
+    func uploadUsesCustomCacheControl() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let receivedCacheControl = Mutex<String?>(nil)
+        let r2 = MockR2Client(onUpload: { _, _, _, cacheControl in
+            receivedCacheControl.withLock { $0 = cacheControl }
+        })
+
+        let service = UploadService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
+
+        _ = try await service.upload(
+            filePath: filePath,
+            slug: Self.testSlug,
+            cacheControl: "public, max-age=300"
+        )
+
+        #expect(receivedCacheControl.withLock { $0 } == "public, max-age=300")
+    }
+
+    @Test("upload uses default cacheControl when not provided")
+    func uploadUsesDefaultCacheControl() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let receivedCacheControl = Mutex<String?>(nil)
+        let r2 = MockR2Client(onUpload: { _, _, _, cacheControl in
+            receivedCacheControl.withLock { $0 = cacheControl }
+        })
+
+        let service = UploadService(r2: r2, publicBaseURL: Self.testPublicBaseURL)
+
+        _ = try await service.upload(
+            filePath: filePath,
+            slug: Self.testSlug
+        )
+
+        #expect(receivedCacheControl.withLock { $0 } == "public, max-age=31536000")
+    }
+
     @Test("upload throws on invalid slug")
     func uploadThrowsOnInvalidSlug() async throws {
         let (filePath, tmpSlug) = try writeTempFile()
