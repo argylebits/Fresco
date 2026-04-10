@@ -33,6 +33,9 @@ struct UploadCommand: AsyncParsableCommand {
     @Option(name: .long, help: "R2 public base URL for uploaded images")
     var r2PublicBaseUrl: String?
 
+    @Option(name: .long, help: "Cache-Control header for the uploaded object")
+    var cacheControl: String?
+
     struct Dependencies: Sendable {
         let configReader: ConfigReader
         let r2: any R2ClientProtocol
@@ -49,6 +52,7 @@ struct UploadCommand: AsyncParsableCommand {
         case r2SecretAccessKey
         case r2Bucket
         case r2PublicBaseUrl
+        case cacheControl
     }
 
     mutating func run() async throws {
@@ -70,7 +74,12 @@ struct UploadCommand: AsyncParsableCommand {
         }
 
         let service = UploadService(r2: deps.r2, publicBaseURL: effectiveR2PublicBaseUrl)
-        let result = try await service.upload(filePath: filePath, slug: effectiveSlug, destinationFilename: destinationFilename)
+        let result: UploadResult
+        if let cacheControl {
+            result = try await service.upload(filePath: filePath, slug: effectiveSlug, destinationFilename: destinationFilename, cacheControl: cacheControl)
+        } else {
+            result = try await service.upload(filePath: filePath, slug: effectiveSlug, destinationFilename: destinationFilename)
+        }
 
         print(result.publicURL.absoluteString)
     }

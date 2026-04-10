@@ -9,7 +9,7 @@ public struct UploadService: Sendable {
         self.publicBaseURL = publicBaseURL
     }
 
-    public func upload(filePath: String, slug: String, destinationFilename: String? = nil) async throws(FrescoError) -> UploadResult {
+    public func upload(filePath: String, slug: String, destinationFilename: String? = nil, cacheControl: String = "public, max-age=31536000") async throws(FrescoError) -> UploadResult {
         let slug = try SlugValidator.validate(slug)
 
         guard
@@ -49,7 +49,7 @@ public struct UploadService: Sendable {
             data: data,
             key: key,
             contentType: format.contentType,
-            cacheControl: "public, max-age=31536000"
+            cacheControl: cacheControl
         )
 
         let publicURL = baseURL
