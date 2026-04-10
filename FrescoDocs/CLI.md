@@ -78,6 +78,7 @@ fresco upload <file> [destination]
 | `--r2-secret-access-key <key>` | Override `R2_SECRET_ACCESS_KEY` |
 | `--r2-bucket <name>` | Override `R2_BUCKET` |
 | `--r2-public-base-url <url>` | Override `R2_PUBLIC_BASE_URL` |
+| `--cache-control <value>` | Cache-Control header (default: `public, max-age=31536000`) |
 
 **Examples:**
 
@@ -87,6 +88,9 @@ fresco upload /tmp/my-project/2026-04-02-120000.png
 
 # Upload as a specific filename
 fresco upload /tmp/my-project/2026-04-02-120000.png latest.png
+
+# Upload with a custom cache policy
+fresco upload /tmp/my-project/2026-04-02-120000.png --cache-control "public, max-age=300"
 ```
 
 ---
@@ -120,12 +124,16 @@ fresco remote copy <source> <destination>
 | `--r2-secret-access-key <key>` | Override `R2_SECRET_ACCESS_KEY` |
 | `--r2-bucket <name>` | Override `R2_BUCKET` |
 | `--r2-public-base-url <url>` | Override `R2_PUBLIC_BASE_URL` |
+| `--cache-control <value>` | Cache-Control header for the destination (default: inherit source metadata) |
 
 **Examples:**
 
 ```bash
 # Alias a dated image to latest.png
 fresco remote copy 2026-04-02-120000.png latest.png
+
+# Copy with a short cache TTL for stable aliases
+fresco remote copy 2026-04-02-120000.png latest.png --cache-control "public, max-age=300"
 ```
 
 ---
@@ -147,7 +155,7 @@ fresco upload $(fresco generate)
 # Generate, upload dated, then alias to latest (preserves extension)
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}" --cache-control "public, max-age=300"
 ```
 
 **Event-driven usage:** The commands can be called from any workflow trigger. For example, to generate a release image:

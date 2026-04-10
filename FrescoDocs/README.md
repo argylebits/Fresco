@@ -20,7 +20,7 @@ fresco upload $(fresco generate)
 # Generate, upload, then alias to a stable URL (preserves extension)
 IMAGE=$(fresco generate)
 fresco upload "$IMAGE"
-fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}"
+fresco remote copy "$(basename "$IMAGE")" "latest.${IMAGE##*.}" --cache-control "public, max-age=300"
 ```
 
 Your project points at the stable URL:
