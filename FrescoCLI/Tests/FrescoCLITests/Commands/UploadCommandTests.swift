@@ -112,6 +112,39 @@ struct UploadCommandTests {
         #expect(receivedKey.withLock { $0 } == "test-slug/latest.jpg")
     }
 
+    @Test func command_parsesCacheControlFlag() throws {
+        let cmd = try UploadCommand.parse([
+            "/tmp/test/image.jpg", "--cache-control", "public, max-age=300",
+        ])
+        #expect(cmd.cacheControl == "public, max-age=300")
+    }
+
+    @Test func command_cacheControlDefaultsToNil() throws {
+        let cmd = try UploadCommand.parse(["/tmp/test/image.jpg"])
+        #expect(cmd.cacheControl == nil)
+    }
+
+    @Test func run_passesCacheControlToService() async throws {
+        let (filePath, tmpSlug) = try writeTempFile()
+        defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
+
+        let receivedCacheControl = Mutex<String?>(nil)
+        var cmd = try UploadCommand.parse([
+            filePath, "--cache-control", "public, max-age=300",
+        ])
+        cmd.overrideDependencies = UploadCommand.Dependencies(
+            configReader: ConfigReader(provider: InMemoryProvider(values: [
+                "frescoSlug": "test-slug",
+                "r2.publicBaseUrl": "https://cdn.example.com",
+            ])),
+            r2: MockCLIR2Client(onUpload: { _, _, _, cacheControl in
+                receivedCacheControl.withLock { $0 = cacheControl }
+            })
+        )
+        try await cmd.run()
+        #expect(receivedCacheControl.withLock { $0 } == "public, max-age=300")
+    }
+
     @Test func run_throwsWhenSlugMissing() async throws {
         let (filePath, tmpSlug) = try writeTempFile()
         defer { try? FileManager.default.removeItem(atPath: "/tmp/\(tmpSlug)") }
