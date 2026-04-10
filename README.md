@@ -120,7 +120,7 @@ See [`fresco.template.env`](fresco.template.env) for the full variable list.
 | `--r2-secret-access-key` | `R2_SECRET_ACCESS_KEY` | R2 secret access key |
 | `--r2-bucket` | `R2_BUCKET` | R2 bucket name |
 | `--r2-public-base-url` | `R2_PUBLIC_BASE_URL` | Public base URL for R2 images |
-| `--cache-control` | — | Cache-Control header (default: `public, max-age=31536000`) |
+| `--cache-control` | — | Cache-Control header (`upload` default: `public, max-age=31536000`; `remote copy` inherits source metadata if omitted) |
 
 ---
 
